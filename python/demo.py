@@ -9,9 +9,8 @@ locs=pickle.load(open('./blockfacelocs.p','rb')) # load location data
 clusterlocs=np.asarray(locs.values())
 for b in range(np.size(clusterlocs,0)):
    gmap.polygon([clusterlocs[b,1],clusterlocs[b,3]],[clusterlocs[b,0],
-                   clusterlocs[b,2]],color='r',edge_width=3)
+                   clusterlocs[b,2]],color='g',edge_width=3)
 
 st="map-2013-s"+".html"
 gmap.draw(st)
 print 'Created file : %s' % st
-plt.show()
