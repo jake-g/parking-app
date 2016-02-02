@@ -5,7 +5,7 @@ start_date = '01012015'
 end_date ='01072015'
 url = 'http://web6.seattle.gov/SDOT/wapiParkingStudy/api/ParkingTransaction?from='+start_date+'&to=' + end_date
 
-
+print url
 req = urllib2.urlopen(url)
 csvFile = csv.reader(req)
 
