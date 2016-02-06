@@ -172,3 +172,18 @@ crashlytics-build.properties
 
 # Created by .ignore support plugin (hsz.mobi)
 .DS_Store
+
+datastore/
+html/
+.Python
+[Bb]in
+[Ii]nclude
+[Ll]ib
+[Ll]ib64
+[Ll]ocal
+[Ss]cripts
+pyvenv.cfg
+.venv
+pip-selfcheck.json
+
+.elasticbeanstalk/
