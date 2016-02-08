@@ -24,7 +24,7 @@ def check_date(date_str):
     try:
         return datetime.strptime(date_str, '%m/%d/%y')
     except ValueError:
-        print 'Incorrect format (Use: m/d/yy)'
+        print 'Incorrect format (Use: mm/dd/yy)'
 
 
 def main():
