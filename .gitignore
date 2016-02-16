@@ -13,4 +13,5 @@ pip-selfcheck.json
 
 .elasticbeanstalk/
 .DS_Store
+icon
 .idea
