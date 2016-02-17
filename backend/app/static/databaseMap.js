@@ -50,7 +50,7 @@ $(function() {
 			placeMarkerAndFindPayStations(e.latLng, map);
 		});
 
-		var url = "backend/app/static/streets.json";
+		var url = "https://raw.githubusercontent.com/ngdaniel/parking-project/master/backend/app/static/streets.json";
 
 		$.getJSON(url, function(data) {
 
