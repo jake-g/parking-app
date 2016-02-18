@@ -1,11 +1,12 @@
 from __future__ import division
-from flask import Flask, request, abort , render_template ,jsonify
+from flask import Flask,Response, request, abort , render_template ,jsonify
 from flask.ext.mysql import MySQL
 import json
 import time
 import datetime
 import math
 import os
+import requests
 
 application = Flask(__name__)
 mysql = MySQL()
@@ -25,13 +26,17 @@ def index():
 def get_paystations():
     element_keys = request.args.get('element_keys', None)
     cur = mysql.connect().cursor()
-    query = "SELECT * FROM pay_stations"
+    query = "SELECT * FROM blockfaces"
     if element_keys:
         query += " WHERE element_key IN ({0})" 
         cur.execute(query.format(', '.join(element_keys.split())))
     else:
         cur.execute(query)
-    return str(cur.fetchall())
+    ret = {}
+    for ps in cur.fetchall():
+        ret[ps[0]] = ps[1:]
+        
+    return json.dumps(ret)
 
 @application.route('/paystations_in_radius', methods=['GET', 'POST'])
 def get_paystations_in_radius():
@@ -64,17 +69,24 @@ def get_paystations_in_radius():
             WHERE acos(sin({0})*sin(radians(latitude)) + cos({0})*cos(radians(latitude))*cos(radians(longitude)-{1})) * {2} < {7} \
             ORDER BY D"
     cur.execute(query.format(math.radians(lat), math.radians(lon), R, minlat, maxlat, minlon, maxlon, rad))
-    results = cur.fetchall()
-    return jsonify(result =results)
+    ret = {}
+    for ps in cur.fetchall():
+        ret[ps[0]] = ps[1:]
+        
+    return json.dumps(ret)
 
 @application.route('/transactions', methods=['GET', 'POST'])
 def get_transactions():
     cur = mysql.connect().cursor()
-    start = datetime.datetime.fromtimestamp(int(request.args.get('start', 631180800)))
+    start = datetime.datetime.fromtimestamp(int(request.args.get('start', int(time.mktime((datetime.datetime.now()-datetime.timedelta(days=7)).timetuple())))))
     end = datetime.datetime.fromtimestamp(int(request.args.get('end', int(time.mktime(datetime.datetime.now().timetuple())))))
     query = "SELECT * FROM transactions WHERE timestamp BETWEEN '{0}' and '{1}';"
     cur.execute(query.format(start.strftime('%Y-%m-%d %H:%M:%S'), end.strftime('%Y-%m-%d %H:%M:%S')))
-    return str(cur.fetchall())
+    ret = {}
+    for t in cur.fetchall():
+        ret[t[0]] = list(t[1:2]) + [str(t[3])] + [t[4]]
+        
+    return json.dumps(ret)
 
 @application.route('/densities', methods=['GET', 'POST'])
 def get_densities():
@@ -100,9 +112,26 @@ def get_densities():
             if max_occupancy:
                 max_occupancy = max_occupancy[0]
                 densities[key] = str(occupancy) + '/' + str(max_occupancy)
-
-    return json.dumps(densities)
+    ret = {}
+    for ps in cur.fetchall():
+        ret[ps[0]] = [str(ps[1])] + ps[2:]
         
+    return json.dumps(ret)
+        
+@application.route('/route', methods=['GET', 'POST'])
+def google_request_get_route():
+   key ='AIzaSyAqwnF0OCYJ6IWqWeUBifZpZ7DsI2UOWcI'
+   #TODO: Make origin ask GPS LOCAtion,
+   destinationLat = request.args.get('destinationLat')
+   destinationLon = request.args.get('destinationLon')
+   originLatitude = request.args.get('originLat', None)
+   originLongitude = request.args.get('originLon', None)
+   origin ='%s,%s' % (originLatitude,originLongitude)
+   destination ='%s,%s' % (destinationLat,destinationLon)
+   url ='https://maps.googleapis.com/maps/api/directions/json?origin=%s&destination=%s&key=%s' % (origin,destination,key)  
+   r = requests.get(url)
+   return Response( json.dumps(r.text ),mimetype='application/json')
+
 
 if __name__ == "__main__":
     application.debug = True
