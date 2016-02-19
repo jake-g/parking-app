@@ -22,6 +22,62 @@ $(function() {
 		return false;
 	});
 
+	//////////////////////////////////////////////////////////////
+	// Paystation Lines
+
+	// Checkbox logic
+	document.getElementById("showLines").onclick = function() {
+		if (this.checked) {
+			getPaystations();
+		} else {
+			console.log('Refreshing...');
+			location.reload(); // TODO clear lines instead
+		}
+	};
+
+	// Places line (with color and thinckness weighted)
+	function drawLine(coords, weight) {
+		var size = weight / 1.5
+		var hue = 2 * (55 - weight) // big = red small = light_green
+		var scaledColor = 'hsl(' + hue + ', 100%, 50%)';
+		// scaledColor = 'hsla(160, 100%, 90%, 0.68)';
+		var polygon = new google.maps.Polygon({
+			clickable: false,
+			geodesic: true,
+			fillColor: scaledColor,
+			fillOpacity: 0.100000,
+			paths: coords,
+			strokeColor: scaledColor,
+			strokeOpacity: 0.800000,
+			strokeWeight: size
+		});
+		polygon.setMap(map);
+	}
+
+	// Parse paystation endpoint
+	function getPaystations() {
+		// Loop through paystations and draw each block with dynamic color
+		$.getJSON("http://127.0.0.1:5000/paystations", function(result) {
+			$.each(result, function(i, data) {
+				// data [0:3] start and end coords, [4:5] center coord [6] capacity
+				var coords = new Array(); //TODO is this line needed
+
+				var coords = [
+					new google.maps.LatLng(data[1], data[0]),
+					new google.maps.LatLng(data[3], data[2])
+				];
+
+				// Set color based off capacity
+				if (data[6] > 0) {
+					drawLine(coords, data[6]);
+				}
+				// console.log(JSON.stringify(data))	// DEBUG
+			});
+		});
+	}
+
+	////////////////////////////////////////////////////////////////
+
 	var driveCoordinates = [];
 	var drivePath;
 	$('#routeToLocation').bind('click', function() {
@@ -84,7 +140,7 @@ $(function() {
 				lat: 47.60801,
 				lng: -122.335167
 			},
-			zoom: 15,
+			zoom: 12,
 			disableDefaultUI: true,
 			scrollwheel: false,
 			zoomControl: true,
