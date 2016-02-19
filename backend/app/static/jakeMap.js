@@ -11,12 +11,95 @@ function initMap() {
 		scrollwheel: true
 	});
 
-// 	// draw single line
-// 	var data = [-122.33054937746653, 47.601822730001246, -122.3308297335514, 47.602016542002914]
-// 	var coords = [
-// 		new google.maps.LatLng(data[1], data[0]),
-// 		new google.maps.LatLng(data[3], data[2])
-// 	];
+
+	function drawLine(coords, weight) {
+		var size = weight/1.5
+		var hue =  2*(55 - weight) // big = red small = light_green
+		var scaledColor = 'hsl(' + hue + ', 100%, 50%)';
+		// scaledColor = 'hsla(160, 100%, 90%, 0.68)';
+		var polygon = new google.maps.Polygon({
+			clickable: true,
+			geodesic: true,
+			fillColor: scaledColor ,
+			fillOpacity: 0.100000,
+			paths: coords,
+			strokeColor: scaledColor ,
+			strokeOpacity: 0.800000,
+			strokeWeight: size
+		});
+		polygon.setMap(map);
+	}
+
+	// Loop through paystations and draw each block with dynamic color
+	$.getJSON("http://127.0.0.1:5000/paystations", function(result) {
+		$.each(result, function(i, data) {
+			// data [0:3] start and end coords, [4:5] center coord [6] capacity
+			var coords = new Array();		//TODO is this line needed
+
+			var coords = [
+				new google.maps.LatLng(data[1], data[0]),
+				new google.maps.LatLng(data[3], data[2])
+			];
+
+			// Set color based off capacity
+			if (data[6] > 0) {
+				drawLine(coords, data[6]);
+
+			}
+			// console.log(JSON.stringify(data))	// DEBUG
+		});
+	});
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // draw single line
+// var data =   [-122.331, 47.6018, -122.331, 47.602, -122.331, 47.6019, 4]
+//
+// var coords = [
+// 	new google.maps.LatLng(data[1], data[0]),
+// 	new google.maps.LatLng(data[3], data[2])
+// ];
+//
+// drawLine(coords, "#cb4b4b");
+//
+// // draw single line
+// var data = [-122.33054937746653, 47.601822730001246, -122.3308297335514, 47.602016542002914]
+//
+// var coords = [
+// 	new google.maps.LatLng(data[1], data[0]),
+// 	new google.maps.LatLng(data[3], data[2])
+// ];
+//
+// drawLine(coords, "#1ced1f");
+
+
+// // draw single line
+// var data =   [-122.331, 47.6018, -122.331, 47.602, -122.331, 47.6019, 4]
+//
+// var coords = [
+// 	new google.maps.LatLng(data[1], data[0]),
+// 	new google.maps.LatLng(data[3], data[2])
+// ];
+//
+// drawLine(coords, "#cb4b4b");
 //
 // 	var polygon = new google.maps.Polygon({
 // 		clickable: false,
@@ -32,43 +115,15 @@ function initMap() {
 // }
 
 
-	$.getJSON("http://127.0.0.1:5000/paystations", function(result) {
-		$.each(result, function(i, line) {
-			var coords = new Array();
+// 		var mypath = new Array();
+// 		line = JSON.parse(field.Linestring);
+// 		//Parse the array of LatLngs into Gmap points
+// 		for (var i = 0; i < line.length; i++) {
+// 			//Tokenise the coordinates
+// 			var coords = (new String(line[i])).split(",");
+// 			console.log(coords);
 
-			console.log(JSON.stringify(line))
-			//  [
-			// 	new google.maps.LatLng(line[0], line[1]),
-			// 	new google.maps.LatLng(line[2], line[3])
-			// ];
-			var coords = [
-			    {lat: line[0], lng: line[1]},
-			    {lat: line[2], lng: line[3]}
-			  ];
-			console.log(JSON.stringify(coords));
-
-			var polygon = new google.maps.Polygon({
-				clickable: false,
-				geodesic: true,
-				fillColor: "#FF0000",
-				fillOpacity: 0.300000,
-				paths: coords,
-				strokeColor: "#FF0000",
-				strokeOpacity: 1.000000,
-				strokeWeight: 3
-			});
-			polygon.setMap(map);
-	// 		var mypath = new Array();
-	// 		line = JSON.parse(field.Linestring);
-	// 		//Parse the array of LatLngs into Gmap points
-	// 		for (var i = 0; i < line.length; i++) {
-	// 			//Tokenise the coordinates
-	// 			var coords = (new String(line[i])).split(",");
-	// 			console.log(coords);
-			// }
-		});
-	});
-}
+		// }
 	// var data = [-122.33054937746653, 47.601822730001246, -122.3308297335514, 47.602016542002914]
 	// // var mypath = new Array();
 	// console.log(data);
