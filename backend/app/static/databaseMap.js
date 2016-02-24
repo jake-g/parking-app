@@ -76,6 +76,20 @@ $(function() {
 		});
 	}
 
+	// Parse Occupancy
+	var now = Date.now() / 1000 | 0;
+	getOccupancy(1451649600);
+
+	function getOccupancy(time) {
+		// Loop through occupancy at given time
+		$.getJSON(  $SCRIPT_ROOT+ '/densities?time=' + time, function(result) {
+			$.each(result, function(i, data) {
+				var frac = JSON.stringify(data)
+				var dec = eval(frac)
+				console.log(typeof dec);
+			});
+		});
+	}
 	////////////////////////////////////////////////////////////////
 
 	var driveCoordinates = [];
@@ -196,8 +210,8 @@ $(function() {
 				console.log(data)
 				markAndCircle(latLng, searchRadius, map);
 				//Loop over each datapoint(payStation)
-				nearestPayStation = null;
-                nearestPayStation = null;
+				nearestPayStation == null;
+                nearestPayStation == null;
                 $.each(data, function(index) {
 					payStationItem = data[index];
 					console.log(payStationItem);
