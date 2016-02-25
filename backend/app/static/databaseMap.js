@@ -93,6 +93,7 @@ $(function() {
 		});
 	}
 
+	//TODO get coords list of ids
 	function getCoords(elm_id) {
 		$.getJSON(  $SCRIPT_ROOT+ "/paystations", function(result) {
 			$.each(result, function(id, data) {
