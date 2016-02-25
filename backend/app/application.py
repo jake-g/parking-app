@@ -10,7 +10,7 @@ import requests
 
 application = Flask(__name__)
 mysql = MySQL()
- 
+
 application.config['MYSQL_DATABASE_USER'] = os.environ.get('RDS_USERNAME')
 application.config['MYSQL_DATABASE_PASSWORD'] = os.environ.get('RDS_PASSWORD')
 application.config['MYSQL_DATABASE_DB'] = 'parking'
@@ -18,7 +18,7 @@ application.config['MYSQL_DATABASE_HOST'] = 'parking.c9q5edmigsud.us-west-2.rds.
 application.config['MYSQL_DATABASE_PORT'] = 3306
 mysql.init_app(application)
 
-@application.route('/')    
+@application.route('/')
 def index():
     return render_template('index.html')
 
@@ -28,14 +28,14 @@ def get_paystations():
     cur = mysql.connect().cursor()
     query = "SELECT * FROM blockfaces"
     if element_keys:
-        query += " WHERE element_key IN ({0})" 
+        query += " WHERE element_key IN ({0})"
         cur.execute(query.format(', '.join(element_keys.split())))
     else:
         cur.execute(query)
     ret = {}
     for ps in cur.fetchall():
         ret[ps[0]] = ps[1:]
-        
+
     return json.dumps(ret)
 
 @application.route('/paystations_in_radius', methods=['GET', 'POST'])
@@ -50,7 +50,7 @@ def get_paystations_in_radius():
     lat = float(lat)
     lon = float(lon)
     rad = float(rad)
-    R = 6371 
+    R = 6371
 
     maxlat = lat + math.degrees(rad/R)
     minlat = lat - math.degrees(rad/R)
@@ -72,7 +72,7 @@ def get_paystations_in_radius():
     ret = {}
     for ps in cur.fetchall():
         ret[ps[0]] = ps[1:]
-        
+
     return json.dumps(ret)
 
 @application.route('/transactions', methods=['GET', 'POST'])
@@ -85,7 +85,7 @@ def get_transactions():
     ret = {}
     for t in cur.fetchall():
         ret[t[0]] = list(t[1:2]) + [str(t[3])] + [t[4]]
-        
+
     return json.dumps(ret)
 
 @application.route('/densities', methods=['GET', 'POST'])
@@ -111,10 +111,10 @@ def get_densities():
             max_occupancy = cur.fetchone()
             if max_occupancy:
                 max_occupancy = max_occupancy[0]
-                densities[key] = str(occupancy) + '/' + str(max_occupancy)
-        
+                densities[key] = float(occupancy) / float(max_occupancy)
+
     return json.dumps(densities)
-        
+
 @application.route('/route', methods=['GET', 'POST'])
 def google_request_get_route():
    key ='AIzaSyAqwnF0OCYJ6IWqWeUBifZpZ7DsI2UOWcI'
@@ -125,7 +125,7 @@ def google_request_get_route():
    originLongitude = request.args.get('originLon', None)
    origin ='%s,%s' % (originLatitude,originLongitude)
    destination ='%s,%s' % (destinationLat,destinationLon)
-   url ='https://maps.googleapis.com/maps/api/directions/json?origin=%s&destination=%s&key=%s' % (origin,destination,key)  
+   url ='https://maps.googleapis.com/maps/api/directions/json?origin=%s&destination=%s&key=%s' % (origin,destination,key)
    r = requests.get(url)
    return Response( json.dumps(r.text ),mimetype='application/json')
 

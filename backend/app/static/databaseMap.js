@@ -28,7 +28,7 @@ $(function() {
 	// Checkbox logic
 	document.getElementById("showLines").onclick = function() {
 		if (this.checked) {
-			getPaystations();
+			drawPaystations();
 		} else {
 			console.log('Refreshing...');
 			location.reload(); // TODO clear lines instead
@@ -55,7 +55,7 @@ $(function() {
 	}
 
 	// Parse paystation endpoint
-	function getPaystations() {
+	function drawPaystations() {
 		// Loop through paystations and draw each block with dynamic color
 		$.getJSON(  $SCRIPT_ROOT+ "/paystations", function(result) {
 			$.each(result, function(i, data) {
@@ -83,10 +83,29 @@ $(function() {
 	function getOccupancy(time) {
 		// Loop through occupancy at given time
 		$.getJSON(  $SCRIPT_ROOT+ '/densities?time=' + time, function(result) {
-			$.each(result, function(i, data) {
-				var frac = JSON.stringify(data)
-				var dec = eval(frac)
-				console.log(typeof dec);
+			$.each(result, function(id, data) {
+				var density = parseFloat(JSON.stringify(data));
+				console.log(id + ' : ' + density);
+				coords = getCoords(id);
+					console.log('found ' + coords);
+					drawLine(coords, density*100);
+			});
+		});
+	}
+
+	function getCoords(elm_id) {
+		$.getJSON(  $SCRIPT_ROOT+ "/paystations", function(result) {
+			$.each(result, function(id, data) {
+				if (elm_id == id) {
+					console.log('looking for : ' + elm_id + ' found : ' + id);
+					var coords = [
+						new google.maps.LatLng(data[1], data[0]),
+						new google.maps.LatLng(data[3], data[2])
+					];
+					console.log(JSON.stringify(coords));
+					return coords
+				}
+				// return []
 			});
 		});
 	}
