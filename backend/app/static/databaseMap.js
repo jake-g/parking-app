@@ -28,7 +28,7 @@ $(function() {
 	// Checkbox logic
 	document.getElementById("showLines").onclick = function() {
 		if (this.checked) {
-			getPaystations();
+			drawPaystations();
 		} else {
 			console.log('Refreshing...');
 			location.reload(); // TODO clear lines instead
@@ -55,7 +55,7 @@ $(function() {
 	}
 
 	// Parse paystation endpoint
-	function getPaystations() {
+	function drawPaystations() {
 		// Loop through paystations and draw each block with dynamic color
 		$.getJSON(  $SCRIPT_ROOT+ "/paystations", function(result) {
 			$.each(result, function(i, data) {
@@ -76,6 +76,40 @@ $(function() {
 		});
 	}
 
+	// Parse Occupancy
+	var now = Date.now() / 1000 | 0;
+	getOccupancy(1451649600);
+
+	function getOccupancy(time) {
+		// Loop through occupancy at given time
+		$.getJSON(  $SCRIPT_ROOT+ '/densities?time=' + time, function(result) {
+			$.each(result, function(id, data) {
+				var density = parseFloat(JSON.stringify(data));
+				console.log(id + ' : ' + density);
+				coords = getCoords(id);
+					console.log('found ' + coords);
+					drawLine(coords, density*100);
+			});
+		});
+	}
+
+	//TODO get coords list of ids
+	function getCoords(elm_id) {
+		$.getJSON(  $SCRIPT_ROOT+ "/paystations", function(result) {
+			$.each(result, function(id, data) {
+				if (elm_id == id) {
+					console.log('looking for : ' + elm_id + ' found : ' + id);
+					var coords = [
+						new google.maps.LatLng(data[1], data[0]),
+						new google.maps.LatLng(data[3], data[2])
+					];
+					console.log(JSON.stringify(coords));
+					return coords
+				}
+				// return []
+			});
+		});
+	}
 	////////////////////////////////////////////////////////////////
 
 	var driveCoordinates = [];
@@ -95,7 +129,7 @@ $(function() {
 				console.log(data);
 				json_object = JSON.parse(data);
 				console.log(json_object);
-                //TODO: Iterate over options and create differnet directions 
+                //TODO: Iterate over options and create differnet directions
 				$(json_object.routes[0].legs[0].steps).each(function(index) {
 					latC = ($(this.start_location.lat.toString()));
 					lngC = ($(this.start_location.lng.toString()));
@@ -147,7 +181,11 @@ $(function() {
 			zoom: 12,//see entire city
             //zoom:15, //see middle of downtown
 			disableDefaultUI: true,
+<<<<<<< HEAD
 			scrollwheel: false,
+=======
+			scrollwheel: true,
+>>>>>>> 7bb66bae3d8e670b06af4bb8b4328c31d87e1117
 			zoomControl: true,
 			zoomControlOptions: {
 				position: google.maps.ControlPosition.TOP_RIGHT
@@ -171,8 +209,8 @@ $(function() {
 				console.log(data)
 				markAndCircle(latLng, searchRadius, map);
 				//Loop over each datapoint(payStation)
-				nearestPayStation = null;
-                nearestPayStation = null;
+				nearestPayStation == null;
+                nearestPayStation == null;
                 $.each(data, function(index) {
 					payStationItem = data[index];
 					console.log(payStationItem);
@@ -184,7 +222,7 @@ $(function() {
 						distance = payStationItem[3];
                         if(nearestPayStation == null){
                             nearestPayStation = payStationItem;
-                            nearestPayStationID = idNumber; 
+                            nearestPayStationID = idNumber;
                         }
 						else if(nearestPayStation[3] > payStationItem[3]){
                             console.log(payStationItem[3]);

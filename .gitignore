@@ -15,5 +15,4 @@ pip-selfcheck.json
 .DS_Store
 icon
 .idea
-
 *.log
