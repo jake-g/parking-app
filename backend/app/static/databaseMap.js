@@ -22,7 +22,7 @@ $(function() {
 		return false;
 	});
 
-	//////////////////////////////////////////////////////////////
+    	//////////////////////////////////////////////////////////////
 	// Paystation Lines
 
 	// Checkbox logic
@@ -114,6 +114,7 @@ $(function() {
 
 	var driveCoordinates = [];
 	var drivePath;
+<<<<<<< HEAD
 	$('#routeToLocation').bind('click', function() {
 		nearestPayStationLat = nearestPayStation[0];
 		nearestPayStationLng = nearestPayStation[1];
@@ -153,6 +154,45 @@ $(function() {
 			})
 		return false;
 	});
+=======
+	    
+    $('#routeToLocation').bind('click', function() {
+        destinationLat= nearestPayStation[0];
+        destinationLon= nearestPayStation[1];
+        originLat = $('input[name="latitudeOrigin"]').val();
+		originLon= $('input[name="longitudeOrigin"]').val();
+        
+        directionsService.route({
+            origin: new google.maps.LatLng(originLat,originLon),
+            destination: new google.maps.LatLng(destinationLat,destinationLon),
+            travelMode: google.maps.TravelMode.DRIVING,
+            provideRouteAlternatives:true
+        }, function (response,status){
+            if(status == google.maps.DirectionsStatus.OK){
+                directionsDisplay.setDirections(response);
+            }
+            else{
+                window.alert('Directions request faield due to ' + status);
+            }
+        });
+        
+      
+      directionsServiceBus.route({
+            origin: new google.maps.LatLng(originLat,originLon),
+            destination: new google.maps.LatLng(destinationLat,destinationLon),
+            travelMode: google.maps.TravelMode.TRANSIT
+        }, function (response,status){
+            if(status == google.maps.DirectionsStatus.OK){
+                directionsDisplayBus.setDirections(response);
+            }
+            else{
+                window.alert('Directions request faield due to ' + status);
+            }
+        });
+        
+    })
+    
+>>>>>>> origin/master
 
 	function addLine() {
 		drivePath.setMap(map);
@@ -163,7 +203,11 @@ $(function() {
 	}
 	//!!@!@!?@!?@?!@?!?///
 	var map;
-	var markersList = [];
+    var directionsService;
+    var directionsServiceBus;
+    var directionsDisplay ;
+    var directionsDisplayBus;
+    var markersList = [];
 	var infoWindowList = [];
 	var destination = {
 		lat: 47.60801,
@@ -171,26 +215,50 @@ $(function() {
 	};
 	var nearestPayStation;
     var nearestPayStationID;
+
+    var autoSrc;
+    var autoDst;
 	//Creates map over seattle and adds click dlistener
 	window.initMap = function() {
-		map = new google.maps.Map(document.getElementById('map'), {
+	    directionsService  = new google.maps.DirectionsService; 
+        directionsServiceBus = new google.maps.DirectionsService;
+        directionsDisplay = new google.maps.DirectionsRenderer;
+        directionsDisplayBus = new google.maps.DirectionsRenderer;
+
+
+        map = new google.maps.Map(document.getElementById('map'), {
 			center: {
 				lat: 47.60801,
 				lng: -122.335167
 			},
-			zoom: 12,//see entire city
-            //zoom:15, //see middle of downtown
+			//zoom: 12,//see entire city
+            zoom:15, //see middle of downtown
 			disableDefaultUI: true,
+<<<<<<< HEAD
 <<<<<<< HEAD
 			scrollwheel: false,
 =======
 			scrollwheel: true,
 >>>>>>> 7bb66bae3d8e670b06af4bb8b4328c31d87e1117
+=======
+>>>>>>> origin/master
 			zoomControl: true,
 			zoomControlOptions: {
 				position: google.maps.ControlPosition.TOP_RIGHT
 			},
 		});
+       directionsDisplay.setMap(map);
+       directionsDisplay.setPanel(document.getElementById('drivingDirections'));
+       directionsDisplayBus.setMap(map);
+       directionsDisplayBus.setPanel(document.getElementById('busDirections'));
+
+       autoSrc  = new google.maps.places.Autocomplete(/** @type {!HTMLInputElement} */ (document.getElementById("dirSrc")));
+       
+       
+       autoDest = new google.maps.places.Autocomplete(/** @type {!HTMLInputElement} */  (document.getElementById("dirDst")));
+       
+
+
 		map.addListener('click', function(e) {
 			placeMarkerAndFindPayStations(e.latLng, map);
 		});
@@ -209,12 +277,17 @@ $(function() {
 				console.log(data)
 				markAndCircle(latLng, searchRadius, map);
 				//Loop over each datapoint(payStation)
+<<<<<<< HEAD
 				nearestPayStation == null;
                 nearestPayStation == null;
+=======
+				nearestPayStation = null;
+>>>>>>> origin/master
                 $.each(data, function(index) {
 					payStationItem = data[index];
 					console.log(payStationItem);
 					idNumber = index;
+<<<<<<< HEAD
                     for (var key in payStationItem) {
 						meterLat = payStationItem[0];
 						meterLong = payStationItem[1];
@@ -230,6 +303,21 @@ $(function() {
 						    nearestPayStationID= idNumber;
                         }
 					}
+=======
+                    meterLat = payStationItem[5];
+                    meterLong = payStationItem[4];
+                    meterMaxOcc = payStationItem[6];
+                    distance = payStationItem[7];
+                    if(nearestPayStation == null){
+                        nearestPayStation = payStationItem;
+                        nearestPayStationID = idNumber; 
+                    }
+                    else if(nearestPayStation[7] > distance){
+                        console.log(distance);
+                        nearestPayStation = payStationItem;
+                        nearestPayStationID = idNumber;
+                    }
+>>>>>>> origin/master
 					//Adds marker and infowindow  + click listners for each payStation
 					var marker = new google.maps.Marker({
 						position: new google.maps.LatLng(meterLat, meterLong),

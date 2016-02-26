@@ -1,6 +1,7 @@
 from __future__ import division
-from flask import Flask,Response, request, abort , render_template ,jsonify
+from flask import Flask, Response, request, abort , render_template ,jsonify
 from flask.ext.mysql import MySQL
+from flask.ext.cors import CORS
 import json
 import time
 import datetime
@@ -9,6 +10,7 @@ import os
 import requests
 
 application = Flask(__name__)
+CORS(application)
 mysql = MySQL()
 
 application.config['MYSQL_DATABASE_USER'] = os.environ.get('RDS_USERNAME')
@@ -58,15 +60,15 @@ def get_paystations_in_radius():
     maxlon = lon + math.degrees(rad/R/math.cos(math.radians(lat)))
     minlon = lon - math.degrees(rad/R/math.cos(math.radians(lat)))
 
-    query = "SELECT element_key, latitude, longitude, max_occupancy, \
-                acos(sin({0})*sin(radians(latitude)) + cos({0})*cos(radians(latitude))*cos(radians(longitude)-{1})) * {2} AS D \
+    query = "SELECT *, \
+                acos(sin({0})*sin(radians(latitude_avg)) + cos({0})*cos(radians(latitude_avg))*cos(radians(longitude_avg)-{1})) * {2} AS D \
             FROM ( \
                 SELECT* \
-                FROM pay_stations\
-                WHERE latitude BETWEEN {3} AND {4} \
-                  AND longitude BETWEEN {5} AND {6} \
+                FROM blockfaces\
+                WHERE latitude_avg BETWEEN {3} AND {4} \
+                  AND longitude_avg BETWEEN {5} AND {6} \
             ) AS firstcut \
-            WHERE acos(sin({0})*sin(radians(latitude)) + cos({0})*cos(radians(latitude))*cos(radians(longitude)-{1})) * {2} < {7} \
+            WHERE acos(sin({0})*sin(radians(latitude_avg)) + cos({0})*cos(radians(latitude_avg))*cos(radians(longitude_avg)-{1})) * {2} < {7} \
             ORDER BY D"
     cur.execute(query.format(math.radians(lat), math.radians(lon), R, minlat, maxlat, minlon, maxlon, rad))
     ret = {}
@@ -93,16 +95,15 @@ def get_densities():
     cur = mysql.connect().cursor()
     at_time = datetime.datetime.fromtimestamp(int(request.args.get('time', int(time.mktime(datetime.datetime.now().timetuple())))))
     start = at_time - datetime.timedelta(hours=24)
-    query = "SELECT element_key, timestamp, duration FROM transactions WHERE timestamp BETWEEN '{0}' and '{1}';"
+    query = "SELECT element_key, timestamp, duration FROM transactions WHERE timestamp BETWEEN '{0}' and '{1}' order by duration;"
     cur.execute(query.format(start.strftime('%Y-%m-%d %H:%M:%S'), at_time.strftime('%Y-%m-%d %H:%M:%S')))
     transactions = cur.fetchall()
     timeframes = {}
     occupancies = {}
     for transaction in transactions:
-        if transaction[1] < at_time:
+        if transaction[1] + datetime.timedelta(seconds=transaction[2]) > at_time:
             occupancies[transaction[0]] = occupancies.get(transaction[0], 0) + 1
-        if transaction[1] + datetime.timedelta(seconds=transaction[2]) < at_time:
-            occupancies[transaction[0]] = occupancies.get(transaction[0], 0) - 1
+
     densities = {}
     for key, occupancy in occupancies.iteritems():
         if occupancy:
