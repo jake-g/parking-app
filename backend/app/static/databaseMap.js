@@ -15,7 +15,7 @@ $(function() {
 			navigator.geolocation.getCurrentPosition(function(data) {
 				$('input[name="latitudeOrigin"]').val(data.coords.latitude);
 				$('input[name="longitudeOrigin"]').val(data.coords.longitude);
-			})
+			});
 		} else {
 			alert("Geolocation is not supported by this browser.");
 		}
@@ -37,8 +37,8 @@ $(function() {
 
 	// Places line (with color and thinckness weighted)
 	function drawLine(coords, weight) {
-		var size = weight / 1.5
-		var hue = 2 * (55 - weight) // big = red small = light_green
+		var size = weight / 1.5;
+		var hue = 2 * (55 - weight); // big = red small = light_green
 		var scaledColor = 'hsl(' + hue + ', 100%, 50%)';
 		// scaledColor = 'hsla(160, 100%, 90%, 0.68)';
 		var polygon = new google.maps.Polygon({
@@ -60,9 +60,9 @@ $(function() {
 		$.getJSON($SCRIPT_ROOT + "/paystations", function(result) {
 			$.each(result, function(i, data) {
 				// data [0:3] start and end coords, [4:5] center coord [6] capacity
-				var coords = new Array(); //TODO is this line needed
+				var coords = []; //TODO is this line needed
 
-				var coords = [
+				coords = [
 					new google.maps.LatLng(data[1], data[0]),
 					new google.maps.LatLng(data[3], data[2])
 				];
@@ -83,7 +83,7 @@ $(function() {
 
 	function showDensities(time) {
 		// Loop through occupancy at given time
-		var densities = new Map()
+		var densities = new Map();
 		$.getJSON($SCRIPT_ROOT + '/densities?time=' + time, function(result) {
 			$.each(result, function(id, data) {
 				var density = parseFloat(JSON.stringify(data));
@@ -94,14 +94,14 @@ $(function() {
 				// drawLine(coords, density * 100);
 			});
 			var elm_ids = Array.from(densities.keys());
-			url = $SCRIPT_ROOT + "/paystations?element_keys=" + elm_ids.join('%')
+			url = $SCRIPT_ROOT + "/paystations?element_keys=" + elm_ids.join('%');
 			console.log(url);
 
 			$.getJSON(url, function(result2) {
 				$.each(result2, function(i, data) {
 					console.log(i + data);
-				})
-			})
+				});
+			});
 		});
 	}
 
@@ -159,7 +159,7 @@ $(function() {
 			}
 		});
 
-	})
+	});
 
 
 	function addLine() {
@@ -188,10 +188,10 @@ $(function() {
 	var autoDst;
 	//Creates map over seattle and adds click dlistener
 	window.initMap = function() {
-		directionsService = new google.maps.DirectionsService;
-		directionsServiceBus = new google.maps.DirectionsService;
-		directionsDisplay = new google.maps.DirectionsRenderer;
-		directionsDisplayBus = new google.maps.DirectionsRenderer;
+		directionsService = new google.maps.DirectionsService();
+		directionsServiceBus = new google.maps.DirectionsService();
+		directionsDisplay = new google.maps.DirectionsRenderer();
+		directionsDisplayBus = new google.maps.DirectionsRenderer();
 
 
 		map = new google.maps.Map(document.getElementById('map'), {
@@ -227,14 +227,14 @@ $(function() {
 		//radius is gotten from textBox, default is 250m
 		function placeMarkerAndFindPayStations(latLng, map) {
 			clearMap();
-			searchRadius = .25;
+			searchRadius = 0.25;
 			//Queries python API for datapoints
 			$.getJSON($SCRIPT_ROOT + '/paystations_in_radius', {
 				latitude: latLng.lat,
 				longitude: latLng.lng,
 				radius: searchRadius
 			}, function(data) {
-				console.log(data)
+				console.log(data);
 				markAndCircle(latLng, searchRadius, map);
 				//Loop over each datapoint(payStation)
 				nearestPayStation = null;
@@ -246,7 +246,7 @@ $(function() {
 					meterLong = payStationItem[4];
 					meterMaxOcc = payStationItem[6];
 					distance = payStationItem[7];
-					if (nearestPayStation == null) {
+					if (nearestPayStation === null) {
 						nearestPayStation = payStationItem;
 						nearestPayStationID = idNumber;
 					} else if (nearestPayStation[7] > distance) {
@@ -317,5 +317,5 @@ $(function() {
 			//Adds circle into markerList so that it gets cleared at the same time
 			markersList.push(cityCircle);
 		}
-	}
+	};
 });
