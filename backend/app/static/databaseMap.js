@@ -26,36 +26,45 @@ $(function() {
   // Paystation Lines
   var paystationList = [];
   var capacityWindowList = [];
-  // Checkbox logic
+  // Button logic
   document.getElementById("showLines").onclick = function() {
-    if (this.checked) {
       drawPaystations();
-    } else {
-      console.log('Refreshing...');
-      location.reload(); // TODO clear lines instead
-    }
   };
 
+  document.getElementById("searchTime").onclick = function() {
+      var timestamp = $('input[name="timestamp"]').val();
+      if(!timestamp) {
+        timestamp = Date.now() / 1000 | 0; // current unix time
+      }
+      // showDensities(1451649600); 1455290482
+      showDensities(timestamp);
+  };
+
+  document.getElementById("refresh").onclick = function() {
+    console.log('Refreshing...');
+    location.reload(); // TODO clear lines instead
+  };
+
+
   // Places line (with color and thinckness weighted)
-  function drawLine(coords, weight) {
-    var size = weight / 1.5;
-    var hue = 2 * (55 - weight); // big = red small = light_green
-    var scaledColor = 'hsl(' + hue + ', 100%, 50%)';
-    // scaledColor = 'hsla(160, 100%, 90%, 0.68)';
+  function drawLine(coords, color, size) {
+    // console.log('drawing...weight = ' + size + ' : color = ' + color);
+    // console.log(coords);
+
     var polygon = new google.maps.Polygon({
       clickable: false,
       geodesic: true,
-      fillColor: scaledColor,
+      fillColor: color,
       fillOpacity: 0.100000,
       paths: coords,
-      strokeColor: scaledColor,
+      strokeColor: color,
       strokeOpacity: 0.800000,
       strokeWeight: size
     });
     polygon.setMap(map);
   }
-// 
-//   //TODO: Make a better looking Info window
+//
+//   //TODO: Add info to lines
 //   infoWindowContent = '<p>parkingMeter {} has a max capacity {} and is {} km away from destination </p>'.format(idNumber, meterMaxOcc, distance);
 //   var infoWindow = new google.maps.InfoWindow({
 //     content: infoWindowContent
@@ -78,16 +87,22 @@ $(function() {
     $.getJSON($SCRIPT_ROOT + "/paystations", function(result) {
       $.each(result, function(i, data) {
         // data [0:3] start and end coords, [4:5] center coord [6] capacity
-        var coords = []; //TODO is this line needed
+        // var coords = []; //TODO is this line needed
 
         coords = [
           new google.maps.LatLng(data[1], data[0]),
           new google.maps.LatLng(data[3], data[2])
         ];
 
-        // Set color based off capacity
         if (data[6] > 0) {
-          drawLine(coords, data[6]);
+          // Calculate size and color of line
+          var size = data[6] / 1.5;
+          var hue = 2 * (55 - data[6]); // big = red small = light_green
+          var color = 'hsl(' + hue + ', 100%, 50%)';
+          // scaledColor = 'hsla(160, 100%, 90%, 0.68)';
+
+          // Set color based off capacity
+            drawLine(coords, color, size);
         }
         // console.log(JSON.stringify(data))	// DEBUG
       });
@@ -95,13 +110,9 @@ $(function() {
   }
 
   // Parse Occupancy
-  var now = Date.now() / 1000 | 0; // current unix time
-  // showDensities(1451649600);
-  showDensities(1455290482);
-
+  var densities = new Map();
   function showDensities(time) {
     // Loop through occupancy at given time
-    var densities = new Map();
     $.getJSON($SCRIPT_ROOT + '/densities?time=' + time, function(density_json) {
       $.each(density_json, function(id, data) {
         var density = parseFloat(JSON.stringify(data));
@@ -112,14 +123,31 @@ $(function() {
         // drawLine(coords, density * 100);
       });
       var elm_ids = Array.from(densities.keys());
-      url = $SCRIPT_ROOT + "/paystations?element_keys=" + elm_ids.join('%');
-      console.log(url);
 
-      $.getJSON(url, function(paystation_json) {
-        $.each(paystation_json, function(i, data) {
-          console.log(i + data);
+      if (elm_ids.length > 0) {
+        url = $SCRIPT_ROOT + "/paystations?element_keys=" + elm_ids.join('%20');
+        // console.log(url);
+        // console.log(densities);
+        $.getJSON(url, function(paystation_json) {
+          $.each(paystation_json, function(id, data) {
+            coords = [
+              new google.maps.LatLng(data[1], data[0]),
+              new google.maps.LatLng(data[3], data[2])
+            ];
+            // console.log(densities.get(id) + ' : ' + coords);
+            // draw line colored based off density
+            // scale so red is full, green empty
+            var hue = parseInt(130*(1-densities.get(id)));
+            hue = Math.max(0, hue); //TODO wtf, some densities are > 1 thus hue < 0
+            var color = 'hsl(' + hue + ', 100%, 50%)';
+            var size = data[6] / 1.8;
+            // console.log(densities.get(id) + '-->' + color);
+            drawLine(coords, color, size);
+          });
         });
-      });
+      } else {
+        alert("No info found at that time");
+      }
     });
   }
 

@@ -3,15 +3,18 @@
 
 
     <div id="nav">
-        Current Latitude : <input type='text' size=20 name='latitudeOrigin'><br>
-        Current Longitude: <input type='text' size=20 name='longitudeOrigin'><br>
+        Current Latitude : <input type="text" size=20 name="latitudeOrigin"><br>
+        Current Longitude: <input type="text" size=20 name="longitudeOrigin"><br>
         <button id=getGpsLocation>Use current GPS </button><br>
         <h1>[OR]</h1>
-        A : <input type='text' size=20 id='dirSrc'><br>
-        B : <input type='text' size=20 id='dirDst'><br>
+        A : <input type="text" size=20 id="dirSrc"><br>
+        B : <input type="text" size=20 id="dirDst"><br>
 
-        <button id=routeToLocation>Route to map marker </button>
-        <label><input type="checkbox" id="showLines" />Lot Sizes</label>
+        <button id=routeToLocation>Route to map marker </button><br>
+        <br>Unix Timestamp:  (default=now)<input type="text" size=20 name="timestamp"><br>
+        <button id=searchTime>Show densities</button>
+        <button id=showLines>Show lots</button>
+        <button id=refresh>Clear Lines</button>
 
         <div id ="busDirections"></div>
         <div id ="drivingDirections">
