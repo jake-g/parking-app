@@ -7,7 +7,6 @@ String.prototype.format = function() {
   });
 };
 
-
 //On document creation adds click event handler to forms
 $(function() {
   $('#getGpsLocation').bind('click', function() {
@@ -22,35 +21,35 @@ $(function() {
     return false;
   });
 
-  //////////////////////////////////////////////////////////////
-  // Paystation Lines
-  var paystationList = [];
-  var capacityWindowList = [];
-  // Button logic
+///////////////////////////////////////////////////////////////////////////////
+  // Button logic event handlers
   document.getElementById("showLines").onclick = function() {
-      drawPaystations();
+		clearMap();
+		drawPaystations();
   };
-
   document.getElementById("searchTime").onclick = function() {
       var timestamp = $('input[name="timestamp"]').val();
       if(!timestamp) {
-        timestamp = Date.now() / 1000 | 0; // current unix time
-      }
-      // showDensities(1451649600); 1455290482
+        timestamp = 1455290482; //Date.now() / 1000 | 0; // current unix time
+      }  // showDensities(1451649600); 1455290482
+			// clearMap();
       showDensities(timestamp);
   };
-
   document.getElementById("refresh").onclick = function() {
-    console.log('Refreshing...');
-    location.reload(); // TODO clear lines instead
+		clearMap();
   };
 
+	// Paystation Lines
 
+// TODO auto fit lines to roads
+// TODO info text on line hover
+// TODO speedup density draw
+// TODO html cal select time
+
+	var lineList = []
   // Places line (with color and thinckness weighted)
   function drawLine(coords, color, size) {
     // console.log('drawing...weight = ' + size + ' : color = ' + color);
-    // console.log(coords);
-
     var polygon = new google.maps.Polygon({
       clickable: false,
       geodesic: true,
@@ -62,33 +61,14 @@ $(function() {
       strokeWeight: size
     });
     polygon.setMap(map);
+		lineList.push(polygon)
   }
-//
-//   //TODO: Add info to lines
-//   infoWindowContent = '<p>parkingMeter {} has a max capacity {} and is {} km away from destination </p>'.format(idNumber, meterMaxOcc, distance);
-//   var infoWindow = new google.maps.InfoWindow({
-//     content: infoWindowContent
-//   });
-//   marker.addListener('click', function() {
-//     for (var i = 0; i < infoWindowList.length; i++) {
-//       infoWindowList[i].close();
-//     }
-//     infoWindow.open(map, marker);
-//   });
-//   markersList.push(marker);
-//   infoWindowList.push(infoWindow);
-//
-// });
-
 
   // Parse paystation endpoint
   function drawPaystations() {
     // Loop through paystations and draw each block with dynamic color
     $.getJSON($SCRIPT_ROOT + "/paystations", function(result) {
       $.each(result, function(i, data) {
-        // data [0:3] start and end coords, [4:5] center coord [6] capacity
-        // var coords = []; //TODO is this line needed
-
         coords = [
           new google.maps.LatLng(data[1], data[0]),
           new google.maps.LatLng(data[3], data[2])
@@ -99,12 +79,8 @@ $(function() {
           var size = data[6] / 1.5;
           var hue = 2 * (55 - data[6]); // big = red small = light_green
           var color = 'hsl(' + hue + ', 100%, 50%)';
-          // scaledColor = 'hsla(160, 100%, 90%, 0.68)';
-
-          // Set color based off capacity
-            drawLine(coords, color, size);
+          drawLine(coords, color, size);    // Set color based off capacity
         }
-        // console.log(JSON.stringify(data))	// DEBUG
       });
     });
   }
@@ -115,15 +91,12 @@ $(function() {
     // Loop through occupancy at given time
     $.getJSON($SCRIPT_ROOT + '/densities?time=' + time, function(density_json) {
       $.each(density_json, function(id, data) {
-        var density = parseFloat(JSON.stringify(data));
+        var density = parseFloat(JSON.stringify(eval(data)));
         densities.set(id, density);
-        // console.log(densities);
-        // console.log(id + ' : ' + density);
-        // coords = getCoords(id);
-        // drawLine(coords, density * 100);
       });
       var elm_ids = Array.from(densities.keys());
 
+      // draw line colored based off density
       if (elm_ids.length > 0) {
         url = $SCRIPT_ROOT + "/paystations?element_keys=" + elm_ids.join('%20');
         // console.log(url);
@@ -134,13 +107,12 @@ $(function() {
               new google.maps.LatLng(data[1], data[0]),
               new google.maps.LatLng(data[3], data[2])
             ];
-            // console.log(densities.get(id) + ' : ' + coords);
-            // draw line colored based off density
             // scale so red is full, green empty
             var hue = parseInt(130*(1-densities.get(id)));
             hue = Math.max(0, hue); //TODO wtf, some densities are > 1 thus hue < 0
             var color = 'hsl(' + hue + ', 100%, 50%)';
             var size = data[6] / 1.8;
+            // console.log(densities.get(id) + ' : ' + coords);
             // console.log(densities.get(id) + '-->' + color);
             drawLine(coords, color, size);
           });
@@ -150,25 +122,7 @@ $(function() {
       }
     });
   }
-
-  // //TODO get coords list of ids
-  // function getCoords(elm_id) {
-  // 	$.getJSON($SCRIPT_ROOT + "/paystations", function(result) {
-  // 		$.each(result, function(id, data) {
-  // 			if (elm_id == id) {
-  // 				console.log('looking for : ' + elm_id + ' found : ' + id);
-  // 				var coords = [
-  // 					new google.maps.LatLng(data[1], data[0]),
-  // 					new google.maps.LatLng(data[3], data[2])
-  // 				];
-  // 				console.log(JSON.stringify(coords));
-  // 				return coords
-  // 			}
-  // 			// return []
-  // 		});
-  // 	});
-  // }
-  ////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
   var driveCoordinates = [];
   var drivePath;
@@ -329,6 +283,7 @@ $(function() {
 
     //Clerars the map of markers
     function clearMap() {
+
       for (var i = 0; i < markersList.length; i++) {
         markersList[i].setMap(null);
       }
@@ -364,4 +319,20 @@ $(function() {
       markersList.push(cityCircle);
     }
   };
+	//Clears the map of markers
+	function clearMap() {
+		for (var j = 0; j < lineList.length; j++) {
+			lineList[j].setMap(null);
+		}
+		for (var i = 0; i < markersList.length; i++) {
+			markersList[i].setMap(null);
+		}
+		if (drivePath) {
+			removeLine();
+		}
+		infoWindowList = [];
+		markersList = [];
+		lineList = [];
+	}
+
 });
