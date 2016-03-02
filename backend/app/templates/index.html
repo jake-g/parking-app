@@ -6,15 +6,19 @@
         Current Latitude : <input type="text" size=20 name="latitudeOrigin"><br>
         Current Longitude: <input type="text" size=20 name="longitudeOrigin"><br>
         <button id=getGpsLocation>Use current GPS </button><br>
-        <h1>[OR]</h1>
+        <h3>[OR]</h3>
         A : <input type="text" size=20 id="dirSrc"><br>
         B : <input type="text" size=20 id="dirDst"><br>
-
         <button id=routeToLocation>Route to map marker </button><br>
-        <br>Unix Timestamp:<input type="text" size=20 name="timestamp"><br>
-        <button id=searchTime>Show densities</button>
+        <hr>
         <button id=showLines>Show lots</button>
-        <button id=refresh>Clear Lines</button>
+        <button id=refresh>Clear Lines</button><br>
+        <br>Unix Timestamp:<input type="text" size=20 id="timestamp" value=""><br>
+        <br>Date:  <input type=date step=1 min=2015-01-01 id="date">
+        <br>Time: <input type=time min=1:00 max=24:00 step=900 id="time">
+        <button id=searchTime>Show densities</button><br>
+        <div class="content"><span class='value'></span></div>
+
 
         <div id ="busDirections"></div>
         <div id ="drivingDirections">
