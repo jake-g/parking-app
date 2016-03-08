@@ -16,3 +16,4 @@ pip-selfcheck.json
 icon
 .idea
 *.log
+.ipynb_checkpoints/
