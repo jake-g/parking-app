@@ -7,8 +7,9 @@ import pickle as pickle
 
 # Settings
 elm_ids = [8005, 17066, 32489, 35502, 76429] # in increasing popularity
-start_day = '2-23-2015'
-end_day = '2-26-2015'
+elm_ids = [32489] # in increasing popularity
+start_day = '6-23-2015'
+end_day = '8-23-2015'
 start_time = time.time() # current time for timing script
 path = 'datastore/paystations/'
 if not os.path.exists(path):
@@ -30,6 +31,10 @@ for elm_id in elm_ids:
 
     # LOOP DAY
     for i, date in enumerate(start_date + datetime.timedelta(n) for n in range(day_count)):
+
+        if day_lookup[date.weekday()] is 'Sun': # skip sunday since parking is free
+            continue
+
         query = "SELECT element_key, timestamp, duration FROM transactions " \
                 "WHERE date(timestamp) = '{0}' AND element_key= %d" % elm_id
         cur.execute(query.format(date.strftime('%Y-%m-%d')))
@@ -52,12 +57,12 @@ for elm_id in elm_ids:
             # LOOP HOURS
             for hr in xrange(start.hour, end.hour):
                 densities[i, hr] += 1
-    print ' Found %d hours of parked cars' %np.sum(densities)
 
+    print ' Found %d hours of parked cars' %np.sum(densities)
     output = path + '%d_%d_days.d' % (elm_id, day_count) # output path
     print 'Saving to %s' % output
     pickle.dump(densities, open(output, 'wb'))
     # time_series[elm_id] = densities
 
-print 'Done in %d ms' % (time.time() - start_time)
+print 'Done in %d s' % (time.time() - start_time)
 
