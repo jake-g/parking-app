@@ -104,8 +104,8 @@ for elm_id in elm_ids:
 
         # print '\t\t' + str(densities[i,:])
 
-	if i % 50 == 0
-		save_data(densities, elm_id, i, day_count):
+	if i % 50 == 0:
+		save_data(densities, elm_id, i, day_count)
 
 
 print 'Done in %d s' % (time.time() - start_time)
