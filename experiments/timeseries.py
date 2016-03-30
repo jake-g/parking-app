@@ -20,8 +20,8 @@ db = MySQLdb.connect(host="parking.c9q5edmigsud.us-west-2.rds.amazonaws.com", po
 cur = db.cursor()
 start_date = dt.datetime.strptime(start_day, '%m-%d-%Y')
 end_date = dt.datetime.strptime(end_day, '%m-%d-%Y')
+# start = pd.to_datetime(start_day, format = )
 day_count = (end_date - start_date).days
-time_series = {}
 densities = np.zeros((day_count, 24))
 day_lookup = ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun']
 
@@ -66,7 +66,6 @@ def save_data(densities, elm_id, curr_count, day_count):
     output = path + '%d_%d_days_of_%d.d' % (elm_id, curr_count, day_count) # output path
     print 'Saving to %s' % output
     pickle.dump(densities, open(output, 'wb'))
-    # time_series[elm_id] = densities
 
 # LOOP FILTERED KEYS
 for elm_id in elm_ids:
@@ -109,4 +108,3 @@ for elm_id in elm_ids:
 
 
 print 'Done in %d s' % (time.time() - start_time)
-
