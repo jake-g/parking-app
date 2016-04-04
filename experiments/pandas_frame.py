@@ -13,9 +13,14 @@ day_lookup = ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun']
 
 # Create data frame
 index = pd.date_range(start_day, end_day, freq='H')
-columns = map(str, elm_ids)
-densities = np.zeros((len(index), len(columns)))
-ts = pd.DataFrame(data=densities, index=index, columns=columns)
+densities = np.zeros((len(index), 1))
+ts = pd.DataFrame(data=densities, index=index, columns=['density'])
 ts = ts.fillna(0)
+densities = np.zeros(24)  # temp
+densities[2]  += 1
+densities[6]  += 6
 
-print ts
+print densities
+ts.density[0:24] = densities
+print ts.density[0:24]
+print len(densities)
