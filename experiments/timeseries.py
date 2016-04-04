@@ -94,6 +94,7 @@ for elm_id in elm_ids:
 
         # LOOP TRANSACTIONS
         for j, transaction in enumerate(transactions):
+        # TRANSACTION(32489L, datetime.datetime(2015, 1, 2, 12, 27, 59), 12600L)
             start = transaction[1]
             end = start + dt.timedelta(seconds=transaction[2])
             id = transaction[0]
@@ -106,6 +107,7 @@ for elm_id in elm_ids:
 
             # LOOP HOURS
             for hr in xrange(start.hour, end.hour):
+
                 ts.density[i] += 1
 
                 # print '\t\t' + str(ts.density[i])
