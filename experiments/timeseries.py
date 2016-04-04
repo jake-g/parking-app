@@ -2,6 +2,7 @@ import MySQLdb
 import datetime as dt
 import numpy as np
 import time
+import pandas as pd
 import os
 import pickle as pickle
 
@@ -9,7 +10,7 @@ import pickle as pickle
 elm_ids = [8005, 17066, 32489, 35502, 76429] # in increasing popularity
 elm_ids = [32489] # in increasing popularity
 start_day = '1-1-2015'
-end_day = '1-1-2016'
+end_day = '1-4-2015'
 start_time = time.time() # current time for timing script
 path = 'datastore/paystations/'
 if not os.path.exists(path):
@@ -20,11 +21,17 @@ db = MySQLdb.connect(host="parking.c9q5edmigsud.us-west-2.rds.amazonaws.com", po
 cur = db.cursor()
 start_date = dt.datetime.strptime(start_day, '%m-%d-%Y')
 end_date = dt.datetime.strptime(end_day, '%m-%d-%Y')
-# start = pd.to_datetime(start_day, format = )
 day_count = (end_date - start_date).days
-densities = np.zeros((day_count, 24))
+hour_count = 24*day_count
 day_lookup = ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun']
 
+# Create data frame
+index = pd.date_range(start_day, end_day, freq='H')
+densities = np.zeros((len(index), 1))
+ts = pd.DataFrame(data=densities, index=index, columns=['density'])
+ts = ts.fillna(0)
+
+# Free park function
 def free_parking(d):
     # holiday (skip and if on sunday skip mon)
     holiday = ['01-01', '07-04', '11-11', '12-15']
@@ -61,11 +68,12 @@ def free_parking(d):
         print 'skip thanksgiving day...'
         return True
 
-def save_data(densities, elm_id, curr_count, day_count):
-    print ' Found %d hours of parked cars' %np.nansum(densities)
+def save_data(ts, elm_id, curr_count, day_count):
+    print ' Found %d hours of parked cars' %np.nansum(ts.density)
     output = path + '%d_%d_days_of_%d.d' % (elm_id, curr_count, day_count) # output path
     print 'Saving to %s' % output
-    pickle.dump(densities, open(output, 'wb'))
+    pickle.dump(ts, open(output, 'wb'))
+    print ts
 
 # LOOP FILTERED KEYS
 for elm_id in elm_ids:
@@ -73,9 +81,8 @@ for elm_id in elm_ids:
 
     # LOOP DAY
     for i, date in enumerate(start_date + dt.timedelta(n) for n in range(day_count)):
-
         if free_parking(date): # skip free parking
-            densities[i, :] = np.nan
+            ts.density[i] = np.nan
             continue
 
         query = "SELECT element_key, timestamp, duration FROM transactions " \
@@ -99,12 +106,12 @@ for elm_id in elm_ids:
 
             # LOOP HOURS
             for hr in xrange(start.hour, end.hour):
-                densities[i, hr] += 1
+                ts.density[i] += 1
 
-        # print '\t\t' + str(densities[i,:])
+                # print '\t\t' + str(ts.density[i])
 
-	if i % 50 == 0:
-		save_data(densities, elm_id, i, day_count)
-
+            # Save every 50 days
+    if i % 2 == 0:
+        save_data(ts, elm_id, i, day_count)
 
 print 'Done in %d s' % (time.time() - start_time)
