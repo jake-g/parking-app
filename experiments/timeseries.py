@@ -84,7 +84,7 @@ for elm_id in elm_ids:
     # LOOP DAY
     for i, date in enumerate(start_date + dt.timedelta(n) for n in range(day_count)):
         densities = np.zeros(24)  # temp
-        if free_parking(i, date): # skip free parking
+        if free_parking(date): # skip free parking
             ts.density[24*i:24*i+len(densities)] = np.nan
             continue
 
