@@ -14,6 +14,7 @@ buffer_size = 50
 start_day = '4-12-2014'
 end_day = '1-1-2016'
 start_time = time.time()  # current time for timing script
+last_time = start_time
 path = 'datastore/paystations/'
 if not os.path.exists(path):
     os.makedirs(path)
@@ -47,7 +48,7 @@ def free_parking(d):
         return 'mon after sun holiday'
     # Any Sunday
     if d.weekday() == 6:
-        return 'sunday...'
+        return ' '
     # 3rd Mon Feb and Jan (mlk and pres day)
     elif d.weekday() == 0 and 14 < d.day < 22 and 1 <= d.month <= 2:
         return 'mlk / pres day'
@@ -82,8 +83,8 @@ for elm_id in elm_ids:
         if skip_str:  # skip free parking
             ts.density[24*i:24*i+len(densities)] = np.nan
             elapsed_time = time.time() - start_time
-            print '  %d/%d :\t%s-%s...\tSKIP\tTime: %ds, Delta: 0s\t(%s)' % \
-                (i, day_count-1, day_lookup[date.weekday()], date.strftime('%Y-%m-%d'),
+            print '  %d/%d :\t%s-%s...\tSKIP\t@ id %d\tTime: %ds, Delta: 0s\t(%s)' % \
+                (i, day_count-1, day_lookup[date.weekday()], date.strftime('%Y-%m-%d'), elm_id,
                  elapsed_time,skip_str)
             continue
 
