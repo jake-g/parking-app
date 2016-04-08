@@ -91,9 +91,9 @@ for elm_id in elm_ids:
         if skip_str:
             ts.density[24*i:24*i+len(densities)] = np.nan
             elapsed_time = time.time() - start_time
-            print '  %d/%d :\t%s-%s...\tSKIP\t@ id %d\tTime: %ds\tDelta: 0s\t(%s)' % \
+            print '  %d/%d \t%s-%s...\tSKIP\t@ id %d\tTime: %d min\tDelta: 0s\t(%s)' % \
                 (i, day_count-1, day_lookup[date.weekday()], date.strftime('%Y-%m-%d'), elm_id,
-                 elapsed_time/60,skip_str)
+                 elapsed_time/60, skip_str)
             continue
 
         query = "SELECT element_key, timestamp, duration FROM transactions " \
@@ -120,7 +120,7 @@ for elm_id in elm_ids:
         ts.density[24*i:24*i+len(densities)] = densities  # store from hr 0 to 23 for the ith day
         elapsed_time = (time.time() - start_time)
         delta = elapsed_time - last_time
-        print '  %d/%d :\t%s-%s...\t%d hrs\t@ id %d\tTime: %d min\tDelta: %ds' % \
+        print '  %d/%d \t%s-%s...\t%d hrs\t@ id %d\tTime: %d min\tDelta: %ds' % \
               (i,day_count-1,day_lookup[date.weekday()],date.strftime('%Y-%m-%d'),len(transactions),elm_id,elapsed_time/60.0,delta)
         last_time = elapsed_time
 
