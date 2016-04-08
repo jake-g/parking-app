@@ -14,7 +14,7 @@ buffer_size = 50
 start_day = '4-12-2014'
 end_day = '1-1-2016'
 start_time = time.time()  # current time for timing script
-last_time = start_time
+last_time = 0
 path = 'datastore/paystations/'
 if not os.path.exists(path):
     os.makedirs(path)
@@ -48,7 +48,7 @@ def free_parking(d):
         return 'mon after sun holiday'
     # Any Sunday
     if d.weekday() == 6:
-        return ' '
+        return 'sunday'
     # 3rd Mon Feb and Jan (mlk and pres day)
     elif d.weekday() == 0 and 14 < d.day < 22 and 1 <= d.month <= 2:
         return 'mlk / pres day'
@@ -72,6 +72,7 @@ def save_data(ts, elm_id, curr_count, day_count):
     pickle.dump(ts, open(output, 'wb'))
     print ts
 
+
 # LOOP FILTERED KEYS
 for elm_id in elm_ids:
     print 'Searching Element ID : %d ...' % elm_id
@@ -79,13 +80,20 @@ for elm_id in elm_ids:
     # LOOP DAY
     for i, date in enumerate(start_date + dt.timedelta(n) for n in range(day_count)):
         densities = np.zeros(24)  # temp
+
+        # Save every X days
+        if i % buffer_size == 0 and i > 0:
+            print 'Saving the last %d days' % buffer_size
+            save_data(ts[0:24*i], elm_id, i, day_count)
+
+        # Skip free parking
         skip_str = free_parking(date)
-        if skip_str:  # skip free parking
+        if skip_str:
             ts.density[24*i:24*i+len(densities)] = np.nan
             elapsed_time = time.time() - start_time
-            print '  %d/%d :\t%s-%s...\tSKIP\t@ id %d\tTime: %ds, Delta: 0s\t(%s)' % \
+            print '  %d/%d :\t%s-%s...\tSKIP\t@ id %d\tTime: %ds\tDelta: 0s\t(%s)' % \
                 (i, day_count-1, day_lookup[date.weekday()], date.strftime('%Y-%m-%d'), elm_id,
-                 elapsed_time,skip_str)
+                 elapsed_time/60,skip_str)
             continue
 
         query = "SELECT element_key, timestamp, duration FROM transactions " \
@@ -112,13 +120,9 @@ for elm_id in elm_ids:
         ts.density[24*i:24*i+len(densities)] = densities  # store from hr 0 to 23 for the ith day
         elapsed_time = (time.time() - start_time)
         delta = elapsed_time - last_time
-        print '  %d/%d :\t%s-%s...\t%d hrs\t@ id %d\tTime: %d min, Delta: %ds' % \
+        print '  %d/%d :\t%s-%s...\t%d hrs\t@ id %d\tTime: %d min\tDelta: %ds' % \
               (i,day_count-1,day_lookup[date.weekday()],date.strftime('%Y-%m-%d'),len(transactions),elm_id,elapsed_time/60.0,delta)
-        last_time = elapsed_time;
-        # Save every 50 days
-        if i % buffer_size == 0 and i > 0:
-            print 'Saving the last %d days' % buffer_size
-            save_data(ts[0:i], elm_id, i, day_count)
+        last_time = elapsed_time
 
 print 'Done in %d s' % (time.time() - start_time)
 save_data(ts, 'final', day_count, day_count)
