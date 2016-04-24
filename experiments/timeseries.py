@@ -39,7 +39,7 @@ ts = ts.fillna(0)
 # Free park function
 def free_parking(d):
     # holiday (skip and if on sunday skip mon)
-    holiday = ['01-01', '07-04', '11-11', '12-15']
+    holiday = ['01-01', '07-04', '11-11', '12-25']
     d_str = d.strftime('%m-%d')
     if d_str in holiday:
         return 'holiday'
