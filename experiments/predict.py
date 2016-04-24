@@ -15,13 +15,10 @@ model_params = {'n_estimators': 200, 'max_depth': 6,
 
 
 # Import pandas dataframe
-def load_data(f):
+def load_data(f, start, end):
     ts = pd.read_pickle(data_path + f)
     ts = ts.dropna()  # remove nan which are free parking days
-    start = pd.to_datetime(ts.index[0], format='%m-%d-%Y')
-    end = pd.to_datetime(ts.index[-1], format='%m-%d-%Y')
-    end2 = pd.to_datetime('4-6-2014', format='%m-%d-%Y') # rain
-    ts = ts[start:end2]
+    ts = ts[start:end]
     ts.plot(legend=True, kind='area', stacked=False)
     plt.ylabel('Transactions (hrs)')
     plt.title('Input Data')
@@ -101,9 +98,11 @@ def feature_dependence(results, X, x_train):
 def main():
     # Init Data
     f = '76429_100_days_of_729.d'
+    start = pd.to_datetime(ts.index[0], format='%m-%d-%Y')
+    end = pd.to_datetime(ts.index[-1], format='%m-%d-%Y')
     if len(sys.argv) > 1:
         f = sys.argv[1]
-    ts = load_data(f)
+    ts = load_data(f, start, end)
     X = init_features(ts)  # features considered for prediction
     Y = ts['density']  # variable to predict
 
