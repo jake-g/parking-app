@@ -11,7 +11,8 @@ elm_ids = [8005, 17066, 32489, 35502, 76429] # in increasing popularity
 elm_ids = [76429] # in increasing popularity
 buffer_size = 50
 
-start_day = '7-10-2013'
+
+start_day = '10-18-2013'
 end_day = '1-1-2014'
 start_time = time.time()  # current time for timing script
 last_time = 0
@@ -70,6 +71,7 @@ def save_data(ts, elm_id, curr_count, day_count):
     output = path + '%d_%d_days_of_%d.d' % (elm_id, curr_count, day_count-1) # output path
     print 'Saving to %s' % output
     pickle.dump(ts, open(output, 'wb'))
+	# TODO remove last file saved since new one encompasses it	
     print ts
 
 
