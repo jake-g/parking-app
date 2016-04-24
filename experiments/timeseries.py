@@ -11,8 +11,8 @@ elm_ids = [8005, 17066, 32489, 35502, 76429] # in increasing popularity
 elm_ids = [76429] # in increasing popularity
 buffer_size = 50
 
-start_day = '4-12-2014'
-end_day = '1-1-2016'
+start_day = '7-10-2013'
+end_day = '1-1-2014'
 start_time = time.time()  # current time for timing script
 last_time = 0
 path = 'datastore/paystations/'
@@ -125,4 +125,4 @@ for elm_id in elm_ids:
         last_time = elapsed_time
 
 print 'Done in %d s' % (time.time() - start_time)
-save_data(ts, 'final', day_count, day_count)
+save_data(ts, elm_id, i, day_count)
