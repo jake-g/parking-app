@@ -1,20 +1,21 @@
 import MySQLdb
+import time
+import os
+import pickle
 import datetime as dt
 import numpy as np
-import time
 import pandas as pd
-import os
-import pickle as pickle
 
 # Settings
-elm_ids = [8005, 17066, 32489, 35502, 76429] # in increasing popularity
-elm_ids = [76429] # in increasing popularity
-buffer_size = 50
+# TODO support a list of ids and output dataframe |timestamp|elm_id(0)|elm_id(2)|...|elm_id(n)|
+elm_id = 76429
+buffer_size = 2  # days to log before writing file
 
-start_day = '4-12-2014'
-end_day = '1-1-2016'
+start_day = '1-1-2014'
+end_day = '1-4-2014'
 start_time = time.time()  # current time for timing script
 last_time = 0
+last_output = ''
 path = 'datastore/paystations/'
 if not os.path.exists(path):
     os.makedirs(path)
@@ -64,65 +65,70 @@ def free_parking(d):
     else:
         return ''
 
-
 def save_data(ts, elm_id, curr_count, day_count):
+    global last_output
     print ' Found %d hours of parked cars' %np.nansum(ts.density)
-    output = path + '%d_%d_days_of_%d.d' % (elm_id, curr_count, day_count-1) # output path
+    output = path + '%s_%d_days_of_%d.d' % (str(elm_id), curr_count, day_count-1) # output path
     print 'Saving to %s' % output
     pickle.dump(ts, open(output, 'wb'))
     print ts
+    try:
+        os.remove(last_output)  # remove previous file
+        print 'Deleted : %s' % last_output
+    except OSError:
+        pass
+    last_output = output
 
 
-# LOOP FILTERED KEYS
-for elm_id in elm_ids:
-    print 'Searching Element ID : %d ...' % elm_id
+# LOOP DAY
+print 'Searching Element ID : %d ...' % elm_id
+for i, date in enumerate(start_date + dt.timedelta(n) for n in range(day_count)):
+    densities = np.zeros(24)  # temp
 
-    # LOOP DAY
-    for i, date in enumerate(start_date + dt.timedelta(n) for n in range(day_count)):
-        densities = np.zeros(24)  # temp
+    # Save every X days
+    if i % buffer_size == 0 and i > 0:
+        print 'Saving the last %d days' % buffer_size
+        save_data(ts[0:24*i], elm_id, i, day_count)
 
-        # Save every X days
-        if i % buffer_size == 0 and i > 0:
-            print 'Saving the last %d days' % buffer_size
-            save_data(ts[0:24*i], elm_id, i, day_count)
+    # Skip free parking
+    skip_str = free_parking(date)
+    if skip_str:
+        ts.density[24*i:24*i+len(densities)] = np.nan
+        elapsed_time = time.time() - start_time
+        print '  %d/%d \t%s-%s...\tSKIP\t@ id %d\tTime: %d min\tDelta: 0s\t(%s)' % \
+            (i, day_count-1, day_lookup[date.weekday()], date.strftime('%Y-%m-%d'), elm_id,
+             elapsed_time/60, skip_str)
+        continue
 
-        # Skip free parking
-        skip_str = free_parking(date)
-        if skip_str:
-            ts.density[24*i:24*i+len(densities)] = np.nan
-            elapsed_time = time.time() - start_time
-            print '  %d/%d \t%s-%s...\tSKIP\t@ id %d\tTime: %d min\tDelta: 0s\t(%s)' % \
-                (i, day_count-1, day_lookup[date.weekday()], date.strftime('%Y-%m-%d'), elm_id,
-                 elapsed_time/60, skip_str)
-            continue
+    query = "SELECT element_key, timestamp, duration FROM transactions " \
+            "WHERE date(timestamp) = '{0}' AND element_key= %d" % elm_id
+    cur.execute(query.format(date.strftime('%Y-%m-%d')))
+    transactions = cur.fetchall()
 
-        query = "SELECT element_key, timestamp, duration FROM transactions " \
-                "WHERE date(timestamp) = '{0}' AND element_key= %d" % elm_id
-        cur.execute(query.format(date.strftime('%Y-%m-%d')))
-        transactions = cur.fetchall()
+    # LOOP TRANSACTIONS
+    for j, transaction in enumerate(transactions):
+        start = transaction[1]
+        end = start + dt.timedelta(seconds=transaction[2])
 
-        # LOOP TRANSACTIONS
-        for j, transaction in enumerate(transactions):
-            start = transaction[1]
-            end = start + dt.timedelta(seconds=transaction[2])
+        # TODO handle this case better
+        if end.day != date.day:
+            print "\t\tERROR: start and end of transaction must be same day"
+            print '\t\t', start, 'to', end
+            break
 
-            # TODO handle this case better
-            if end.day != date.day:
-                print "\t\tERROR: start and end of transaction must be same day"
-                print '\t\t', start, 'to', end
-                break
+        # LOOP HOURS
+        for hr in xrange(start.hour, end.hour):
+            densities[hr] += 1
 
-            # LOOP HOURS
-            for hr in xrange(start.hour, end.hour):
-                densities[hr] += 1
+    # Store day's data to ts
+    ts.density[24*i:24*i+len(densities)] = densities  # store from hr 0 to 23 for the ith day
+    elapsed_time = (time.time() - start_time)
+    delta = elapsed_time - last_time
 
-        # Store day's data to ts
-        ts.density[24*i:24*i+len(densities)] = densities  # store from hr 0 to 23 for the ith day
-        elapsed_time = (time.time() - start_time)
-        delta = elapsed_time - last_time
-        print '  %d/%d \t%s-%s...\t%d hrs\t@ id %d\tTime: %d min\tDelta: %ds' % \
-              (i,day_count-1,day_lookup[date.weekday()],date.strftime('%Y-%m-%d'),len(transactions),elm_id,elapsed_time/60.0,delta)
-        last_time = elapsed_time
+    # Print update
+    print '  %d/%d \t%s-%s...\t%d hrs\t@ id %d\tTime: %d min\tDelta: %ds' % \
+          (i,day_count-1,day_lookup[date.weekday()],date.strftime('%Y-%m-%d'),len(transactions),elm_id,elapsed_time/60.0,delta)
+    last_time = elapsed_time
 
 print 'Done in %d s' % (time.time() - start_time)
-save_data(ts, 'final', day_count, day_count)
+save_data(ts, (str(elm_id)+'_final'), day_count, day_count)
