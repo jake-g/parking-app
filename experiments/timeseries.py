@@ -69,7 +69,7 @@ def save_data(ts, elm_id, curr_count, day_count):
     global last_output
     print ' Found %d hours of parked cars' %np.nansum(ts.density)
     output = path + '%s_%d_days_of_%d.d' % (str(elm_id), curr_count, day_count-1) # output path
-    print 'Saving to %s' % output
+    print 'Saving data as %s' % output
     pickle.dump(ts, open(output, 'wb'))
     try:
         os.remove(last_output)  # remove previous file
