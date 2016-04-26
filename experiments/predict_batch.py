@@ -92,9 +92,9 @@ def plot_input(ts):
 
 # Plot Predicted data over actual
 def plot_prediction(pred_df, y_test):
+    plt.figure()
     ax = y_test.plot(legend=True, label='actual', kind='area', stacked=False)
     pred_df.plot(ax=ax, kind='area', stacked=False)
-    plt.title('Prediction vs Actual')
 
 
 # Plot feature impact
@@ -113,7 +113,7 @@ def feature_importance(results, X):
 
 # Plot feature dependence
 def feature_dependence(results, X, x_train):
-    plt.title('Feature Dependence')
+    # print results.feature_importances_
     plot_partial_dependence(results, x_train,
                             features=np.arange(0, len(X.columns)),
                             feature_names=x_train.columns, n_cols=1)
@@ -125,6 +125,7 @@ def training_deviance(results, x_test, y_test, model_params):
     test_score = np.zeros((model_params['n_estimators'],), dtype=np.float64)
     for i, y_pred in enumerate(results.staged_decision_function(x_test)):
         test_score[i] = results.loss_(y_test, y_pred)
+
     # Plot
     plt.figure()
     plt.title('Deviance')
@@ -145,44 +146,67 @@ def main():
     data_path = 'datastore/paystations/'
     data_file = '76429_1-2013-to-4-2016.d'
     elm_id = 76429
-    alt_start = '2-2-2013' # earliest date, optional
-    alt_end = '12-20-2015'  # optional
-    if len(sys.argv) > 1:
-        data_file = sys.argv[1]
 
-    ts = load_data(data_path + data_file, alt_start, alt_end)
-    X = init_features(ts)  # features considered for prediction
-    Y = ts['density']  # variable to predict
+    tst = 0
+    err = []
+    # timedelta(days=days_to_subtract)
+    for year in range(2014, 2016):
+        for month in range(1, 12):
+            for day in range(1, 27, 1):
 
-    # Train Model
-    # x_train, y_train, x_test, y_test = train_stochastic(X, Y, 0.8)  # random sample (80% train)
-    predict_window = 7  # predict 1 week
-    x_train, y_train, x_test, y_test = train_history(X, Y, predict_window)  # train past data
-    start_time = time.time()  # data ready, start timer
+                alt_start = '2-2-2013' # earliest date, optional
+                alt_end = '12-20-2015'  # optional
+                alt_end = '%d-%d-%d' % (month, day, year)
+                if len(sys.argv) > 1:
+                    data_file = sys.argv[1]
 
-    # Gradient boosting
-    model_params = {'n_estimators': 200, 'max_depth': 6, 'learning_rate': 0.03, 'loss': 'huber', 'alpha': 0.95}
-    results = GradientBoostingRegressor(**model_params).fit(x_train, y_train)
+                ts = load_data(data_path + data_file, alt_start, alt_end)
+                X = init_features(ts)  # features considered for prediction
+                Y = ts['density']  # variable to predict
 
-    # Random forests
-    # results = RandomForestRegressor(n_estimators=10).fit(x_train, y_train)    # not as good..?
+                # Train Model
+                # x_train, y_train, x_test, y_test = train_stochastic(X, Y, 0.8)  # random sample (80% train)
+                predict_window = 7  # predict 1 week
+                x_train, y_train, x_test, y_test = train_history(X, Y, predict_window)  # train past data
+                start_time = time.time()  # data ready, start timer
 
-    # Predict Dataframe
-    y_pred = np.round(results.predict(x_test))  # integers
-    y_pred[y_pred < 0] = 0  # no negative
-    print 'Prediction Elapsed Time : %0.2f s' % (time.time() - start_time)  # end timer
-    pred_gb = pd.DataFrame(y_pred, index=x_test.index, columns=['prediction'])
-    # output_file = data_path + '%s_predicted_%d_days_from_%s' % \
-    #                           (str(elm_id), predict_window, str(pred_gb.index[0]).split()[0]) # output path
-    # save_prediction(pred_gb, output_file);
+                # Gradient boosting
+                model_params = {'n_estimators': 200, 'max_depth': 6, 'learning_rate': 0.03, 'loss': 'huber', 'alpha': 0.95}
+                results = GradientBoostingRegressor(**model_params).fit(x_train, y_train)
 
-    # Results
-    print_error(y_pred, y_test, results.score(x_test, y_test))
-    plot_input(Y)
-    plot_prediction(pred_gb, y_test)
-    training_deviance(results, x_test, y_test, model_params)
-    feature_importance(results, X)
-    feature_dependence(results, X, x_train)
+                # Random forests
+                # results = RandomForestRegressor(n_estimators=10).fit(x_train, y_train)    # not as good..?
+
+                # Predict Dataframe
+                y_pred = np.round(results.predict(x_test))  # integers
+                y_pred[y_pred < 0] = 0  # no negative
+                print 'Prediction Elapsed Time : %0.2f s' % (time.time() - start_time)  # end timer
+                pred_gb = pd.DataFrame(y_pred, index=x_test.index, columns=['prediction'])
+                # output_file = data_path + '%s_predicted_%d_days_from_%s' % \
+                #                           (str(elm_id), predict_window, str(pred_gb.index[0]).split()[0]) # output path
+                # save_prediction(pred_gb, output_file);
+
+                # Results
+                err.append(print_error(y_pred, y_test, results.score(x_test, y_test)))
+                tst += 1
+
+                # plot_input(Y)
+                # plot_prediction(pred_gb, y_test)
+                # feature_importance(results, X)
+                # feature_dependence(results, X, x_train)
+                # training_deviance(results, x_test, y_test, model_params)
+
+
+
+    err = np.array(err)
+    pickle.dump(err, open(data_path + 'err_metrics_2014-2016.d', 'wb'))
+    plt.figure()
+    for i in range(0, err.shape[1]):
+        plt.plot(err[:, i])
+
+    plt.legend(['mse', 'msa', 'score'])
+    plt.show()
+
 
 if __name__ == "__main__":
     main()
