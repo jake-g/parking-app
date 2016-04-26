@@ -3,17 +3,18 @@ import sys
 import pandas as pd
 import numpy as np
 import random
+
 from sklearn.metrics import mean_squared_error
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.ensemble.partial_dependence import plot_partial_dependence
+from sklearn.ensemble import RandomForestRegressor
 from matplotlib.pylab import rcParams
-rcParams['figure.figsize'] = 15, 9
-
+rcParams['figure.figsize'] = 15, 9  # plot window size
 
 
 # Import pandas dataframe
-def load_data(f, alt_start='', alt_end=''):
-    ts = pd.read_pickle(data_path + f)
+def load_data(path, alt_start='', alt_end=''):
+    ts = pd.read_pickle(path)
     ts = ts.dropna()  # remove nan which are free parking days
     # Set the date range. alt_start/end is optional
     if alt_start is '':
@@ -68,8 +69,7 @@ def print_error(prediction, y_test):
     r2 = np.mean(abs(y_test - prediction))
     print("MSE: %.4f" % mse)
     print("Mean Error (R2): %.4f cars" % r2)
-
-
+   
 # Plot Predicted data over actual
 def plot_prediction(prediction, x_test, y_test):
     y_pred = pd.DataFrame(prediction, index=x_test.index, columns=['prediction'])
@@ -100,6 +100,22 @@ def feature_dependence(results, X, x_train):
                             feature_names=x_train.columns, n_cols=1)
     plt.show()
 
+# Compute test set deviance
+def training_deviance(results, x_test, y_test, model_params):
+    test_score = np.zeros((model_params['n_estimators'],), dtype=np.float64)
+    for i, y_pred in enumerate(results.staged_decision_function(x_test)):
+        test_score[i] = results.loss_(y_test, y_pred)
+
+    # Plot
+    plt.figure()
+    plt.title('Deviance')
+    plt.plot(np.arange(model_params['n_estimators']) + 1, results.train_score_, 'b-',
+                    label='Training Set Deviance')
+    plt.plot(np.arange(model_params['n_estimators']) + 1, test_score, 'r-',
+                    label='Test Set Deviance')
+    plt.legend(loc='upper right')
+    plt.xlabel('Boosting Iterations')
+    plt.ylabel('Deviance')
 
 def main():
     # Init Data
@@ -111,24 +127,33 @@ def main():
     if len(sys.argv) > 1:
         f = sys.argv[1]
 
-    ts = load_data(f, alt_start, alt_end)
+    ts = load_data(data_path + f, alt_start, alt_end)
     X = init_features(ts)  # features considered for prediction
     Y = ts['density']  # variable to predict
 
 
-    # Run Model
-    model_params = {'n_estimators': 200, 'max_depth': 6,
-                    'learning_rate': 0.1, 'loss': 'huber', 'alpha': 0.95}
+    # Train Model
     # x_train, y_train, x_test, y_test = train_stochastic(X, Y, 0.8)  # random sample (80% train)
     predict_window = 7  # predict 1 week
     x_train, y_train, x_test, y_test = train_history(X, Y, predict_window)  # train past data
+
+    # Gradient boosting
+    model_params = {'n_estimators': 200, 'max_depth': 6,
+                    'learning_rate': 0.03, 'loss': 'huber', 'alpha': 0.95}
     results = GradientBoostingRegressor(**model_params).fit(x_train, y_train)
+
+    # Random forests
+    # results = RandomForestRegressor(n_estimators=10).fit(x_train, y_train)    # not as good..?
+
+    # Predict
     prediction = np.round(results.predict(x_test))
     print prediction  # TODO Save prediction to disk
 
-    # Analyse Results
+    # Results
     # TODO save figs to disk?
     print_error(prediction, y_test)
+    print "Score : %0.4f" % float(results.score(x_test, y_test))
+    training_deviance(results, x_test, y_test, model_params)
     plot_prediction(prediction, x_test, y_test)
     feature_importance(results, X)
     feature_dependence(results, X, x_train)
