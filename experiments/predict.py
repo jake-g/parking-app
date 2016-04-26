@@ -3,11 +3,17 @@ import sys
 import pandas as pd
 import numpy as np
 import random
+import pickle
 
 from sklearn.metrics import mean_squared_error
+from sklearn.metrics import accuracy_score
+
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.ensemble.partial_dependence import plot_partial_dependence
 from sklearn.ensemble import RandomForestRegressor
+
+import warnings
+warnings.filterwarnings('ignore')
 from matplotlib.pylab import rcParams
 rcParams['figure.figsize'] = 15, 9  # plot window size
 
@@ -25,13 +31,14 @@ def load_data(path, alt_start='', alt_end=''):
         end = pd.to_datetime(ts.index[-1], format='%m-%d-%Y')
     else:
         end = pd.to_datetime(alt_end, format='%m-%d-%Y')
-    ts = ts[start:end]
-    ts.plot(legend=True, kind='area', stacked=False)
-    plt.ylabel('Transactions (hrs)')
-    plt.title('Input Data')
     print 'Range :', start, 'to', end
+    ts = ts[start:end]
     return ts
 
+# Save prediction dataframe
+def save_prediction(pred, output)   :
+    print 'Saving prediction as %s' % output
+    pickle.dump(pred, open(output, 'wb'))
 
 # Generate features
 def init_features(ts):
@@ -69,17 +76,23 @@ def print_error(prediction, y_test):
     r2 = np.mean(abs(y_test - prediction))
     print("MSE: %.4f" % mse)
     print("Mean Error (R2): %.4f cars" % r2)
-   
+    print "Accuracy : %0.4f" % float(accuracy_score(prediction, y_test))
+
+
+# Plot input data
+def plot_input(ts):
+    ts.plot(legend=True, kind='area', stacked=False)
+    plt.ylabel('Transactions (hrs)')
+    plt.title('Input Data')
+
 # Plot Predicted data over actual
-def plot_prediction(prediction, x_test, y_test):
-    y_pred = pd.DataFrame(prediction, index=x_test.index, columns=['prediction'])
-    y_pred[y_pred < 0] = 0  # no negative
+def plot_prediction(pred_df, y_test):
     plt.figure()
     ax = y_test.plot(legend=True, label='actual', kind='area', stacked=False)
-    y_pred.plot(ax=ax, kind='area', stacked=False)
+    pred_df.plot(ax=ax, kind='area', stacked=False)
 
 
-# Show the impact of features
+# Plot feature impact
 def feature_importance(results, X):
     feature_importance = results.feature_importances_  # make importances relative to max importance
     feature_importance = 100.0 * (feature_importance / feature_importance.max())
@@ -93,14 +106,16 @@ def feature_importance(results, X):
     plt.show()
 
 
-# Show the dependence of features
+# Plot feature dependence
 def feature_dependence(results, X, x_train):
+    # print results.feature_importances_
     plot_partial_dependence(results, x_train,
                             features=np.arange(0, len(X.columns)),
                             feature_names=x_train.columns, n_cols=1)
     plt.show()
 
-# Compute test set deviance
+
+# Plot training vs actual deviance
 def training_deviance(results, x_test, y_test, model_params):
     test_score = np.zeros((model_params['n_estimators'],), dtype=np.float64)
     for i, y_pred in enumerate(results.staged_decision_function(x_test)):
@@ -117,17 +132,23 @@ def training_deviance(results, x_test, y_test, model_params):
     plt.xlabel('Boosting Iterations')
     plt.ylabel('Deviance')
 
+
+# TODO for input ts, have col be titled by elm id
+# TODO lookup size of elm_id http://parking-dev.us-west-2.elasticbeanstalk.com/paystations?element_keys=76429
+# TODO Better metric for counting density (use size of block)
+# TODO calibrate hyper params
 def main():
     # Init Data
-    global data_path
+    # global data_path
     data_path = 'datastore/paystations/'
-    f = '76429_2014ToNow.d'
-    alt_start = ''  # optional
-    alt_end = '1-1-2016'  # optional
+    data_file = '76429_1-2013-to-4-2016.d'
+    elm_id = 76429
+    alt_start = '2-2-2013' # earliest date, optional
+    alt_end = '12-20-2015'  # optional
     if len(sys.argv) > 1:
-        f = sys.argv[1]
+        data_file = sys.argv[1]
 
-    ts = load_data(data_path + f, alt_start, alt_end)
+    ts = load_data(data_path + data_file, alt_start, alt_end)
     X = init_features(ts)  # features considered for prediction
     Y = ts['density']  # variable to predict
 
@@ -145,18 +166,22 @@ def main():
     # Random forests
     # results = RandomForestRegressor(n_estimators=10).fit(x_train, y_train)    # not as good..?
 
-    # Predict
-    prediction = np.round(results.predict(x_test))
-    print prediction  # TODO Save prediction to disk
+    # Predict Dataframe
+    y_pred = np.round(results.predict(x_test))  # integers
+    y_pred[y_pred < 0] = 0  # no negative
+    pred_gb = pd.DataFrame(y_pred, index=x_test.index, columns=['prediction'])
+    # output_file = data_path + '%s_predicted_%d_days_from_%s' % \
+    #                           (str(elm_id), predict_window, str(pred_gb.index[0]).split()[0]) # output path
+    # save_prediction(pred_gb, output_file);
 
     # Results
-    # TODO save figs to disk?
-    print_error(prediction, y_test)
+    print_error(y_pred, y_test)
     print "Score : %0.4f" % float(results.score(x_test, y_test))
-    training_deviance(results, x_test, y_test, model_params)
-    plot_prediction(prediction, x_test, y_test)
+    plot_input(Y)
+    plot_prediction(pred_gb, y_test)
     feature_importance(results, X)
     feature_dependence(results, X, x_train)
+    training_deviance(results, x_test, y_test, model_params)
 
 
 if __name__ == "__main__":
