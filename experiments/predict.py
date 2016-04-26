@@ -1,21 +1,18 @@
+import warnings
+warnings.filterwarnings('ignore')
 import matplotlib.pylab as plt
 import sys
 import pandas as pd
 import numpy as np
 import random
+import time
 import pickle
-
-from sklearn.metrics import mean_squared_error
-from sklearn.metrics import accuracy_score
-
+import sklearn.metrics as metrics
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.ensemble.partial_dependence import plot_partial_dependence
 from sklearn.ensemble import RandomForestRegressor
-
-import warnings
-warnings.filterwarnings('ignore')
-from matplotlib.pylab import rcParams
-rcParams['figure.figsize'] = 15, 9  # plot window size
+# from matplotlib.pylab import rcParams
+# rcParams['figure.figsize'] = 15, 9  # plot window size
 
 
 # Import pandas dataframe
@@ -31,14 +28,16 @@ def load_data(path, alt_start='', alt_end=''):
         end = pd.to_datetime(ts.index[-1], format='%m-%d-%Y')
     else:
         end = pd.to_datetime(alt_end, format='%m-%d-%Y')
-    print 'Range :', start, 'to', end
+    print 'Data Range :', start.date(), 'to', end.date(), ',', (end.date()-start.date())
     ts = ts[start:end]
     return ts
 
+
 # Save prediction dataframe
-def save_prediction(pred, output)   :
+def save_prediction(pred, output):
     print 'Saving prediction as %s' % output
     pickle.dump(pred, open(output, 'wb'))
+
 
 # Generate features
 def init_features(ts):
@@ -71,12 +70,17 @@ def train_history(X, Y, predict_window):
 
 
 # Prediction Error
-def print_error(prediction, y_test):
-    mse = mean_squared_error(y_test, prediction)
-    r2 = np.mean(abs(y_test - prediction))
-    print("MSE: %.4f" % mse)
-    print("Mean Error (R2): %.4f cars" % r2)
-    print "Accuracy : %0.4f" % float(accuracy_score(prediction, y_test))
+def print_error(y_pred, y_test, score):
+    mse = metrics.mean_squared_error(y_test, y_pred)
+    msa = metrics.mean_absolute_error(y_test, y_pred)
+    r2 = metrics.r2_score(y_test, y_pred)
+    v_score = metrics.explained_variance_score(y_test, y_pred)
+    print "MSE: %.4f\t MSA: %.4f\t R2: %.4f" % (mse, msa, r2)
+    # print "Var Score : %.4f" % v_score
+    print "Prediction Score : %0.4f\n" % score
+    return [mse, msa, score]
+
+
 
 
 # Plot input data
@@ -84,6 +88,7 @@ def plot_input(ts):
     ts.plot(legend=True, kind='area', stacked=False)
     plt.ylabel('Transactions (hrs)')
     plt.title('Input Data')
+
 
 # Plot Predicted data over actual
 def plot_prediction(pred_df, y_test):
@@ -124,10 +129,8 @@ def training_deviance(results, x_test, y_test, model_params):
     # Plot
     plt.figure()
     plt.title('Deviance')
-    plt.plot(np.arange(model_params['n_estimators']) + 1, results.train_score_, 'b-',
-                    label='Training Set Deviance')
-    plt.plot(np.arange(model_params['n_estimators']) + 1, test_score, 'r-',
-                    label='Test Set Deviance')
+    plt.plot(np.arange(model_params['n_estimators']) + 1, results.train_score_, 'b-', label='Training Set Deviance')
+    plt.plot(np.arange(model_params['n_estimators']) + 1, test_score, 'r-', label='Test Set Deviance')
     plt.legend(loc='upper right')
     plt.xlabel('Boosting Iterations')
     plt.ylabel('Deviance')
@@ -143,45 +146,66 @@ def main():
     data_path = 'datastore/paystations/'
     data_file = '76429_1-2013-to-4-2016.d'
     elm_id = 76429
-    alt_start = '2-2-2013' # earliest date, optional
-    alt_end = '12-20-2015'  # optional
-    if len(sys.argv) > 1:
-        data_file = sys.argv[1]
 
-    ts = load_data(data_path + data_file, alt_start, alt_end)
-    X = init_features(ts)  # features considered for prediction
-    Y = ts['density']  # variable to predict
+    tst = 0
+    err = []
+    # timedelta(days=days_to_subtract)
+    for year in range(2014, 2016):
+        for month in range(1, 12):
+            for day in range(1, 27, 1):
+
+                alt_start = '2-2-2013' # earliest date, optional
+                alt_end = '12-20-2015'  # optional
+                alt_end = '%d-%d-%d' % (month, day, year)
+                if len(sys.argv) > 1:
+                    data_file = sys.argv[1]
+
+                ts = load_data(data_path + data_file, alt_start, alt_end)
+                X = init_features(ts)  # features considered for prediction
+                Y = ts['density']  # variable to predict
+
+                # Train Model
+                # x_train, y_train, x_test, y_test = train_stochastic(X, Y, 0.8)  # random sample (80% train)
+                predict_window = 7  # predict 1 week
+                x_train, y_train, x_test, y_test = train_history(X, Y, predict_window)  # train past data
+                start_time = time.time()  # data ready, start timer
+
+                # Gradient boosting
+                model_params = {'n_estimators': 200, 'max_depth': 6, 'learning_rate': 0.03, 'loss': 'huber', 'alpha': 0.95}
+                results = GradientBoostingRegressor(**model_params).fit(x_train, y_train)
+
+                # Random forests
+                # results = RandomForestRegressor(n_estimators=10).fit(x_train, y_train)    # not as good..?
+
+                # Predict Dataframe
+                y_pred = np.round(results.predict(x_test))  # integers
+                y_pred[y_pred < 0] = 0  # no negative
+                print 'Prediction Elapsed Time : %0.2f s' % (time.time() - start_time)  # end timer
+                pred_gb = pd.DataFrame(y_pred, index=x_test.index, columns=['prediction'])
+                # output_file = data_path + '%s_predicted_%d_days_from_%s' % \
+                #                           (str(elm_id), predict_window, str(pred_gb.index[0]).split()[0]) # output path
+                # save_prediction(pred_gb, output_file);
+
+                # Results
+                err.append(print_error(y_pred, y_test, results.score(x_test, y_test)))
+                tst += 1
+
+                # plot_input(Y)
+                # plot_prediction(pred_gb, y_test)
+                # feature_importance(results, X)
+                # feature_dependence(results, X, x_train)
+                # training_deviance(results, x_test, y_test, model_params)
 
 
-    # Train Model
-    # x_train, y_train, x_test, y_test = train_stochastic(X, Y, 0.8)  # random sample (80% train)
-    predict_window = 7  # predict 1 week
-    x_train, y_train, x_test, y_test = train_history(X, Y, predict_window)  # train past data
 
-    # Gradient boosting
-    model_params = {'n_estimators': 200, 'max_depth': 6,
-                    'learning_rate': 0.03, 'loss': 'huber', 'alpha': 0.95}
-    results = GradientBoostingRegressor(**model_params).fit(x_train, y_train)
+    err = np.array(err)
+    pickle.dump(err, open(data_path + 'err_metrics_2014-2016.d', 'wb'))
+    plt.figure()
+    for i in range(0, err.shape[1]):
+        plt.plot(err[:, i])
 
-    # Random forests
-    # results = RandomForestRegressor(n_estimators=10).fit(x_train, y_train)    # not as good..?
-
-    # Predict Dataframe
-    y_pred = np.round(results.predict(x_test))  # integers
-    y_pred[y_pred < 0] = 0  # no negative
-    pred_gb = pd.DataFrame(y_pred, index=x_test.index, columns=['prediction'])
-    # output_file = data_path + '%s_predicted_%d_days_from_%s' % \
-    #                           (str(elm_id), predict_window, str(pred_gb.index[0]).split()[0]) # output path
-    # save_prediction(pred_gb, output_file);
-
-    # Results
-    print_error(y_pred, y_test)
-    print "Score : %0.4f" % float(results.score(x_test, y_test))
-    plot_input(Y)
-    plot_prediction(pred_gb, y_test)
-    feature_importance(results, X)
-    feature_dependence(results, X, x_train)
-    training_deviance(results, x_test, y_test, model_params)
+    plt.legend(['mse', 'msa', 'score'])
+    plt.show()
 
 
 if __name__ == "__main__":
