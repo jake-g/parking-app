@@ -23,7 +23,7 @@ $(function() {
 
   ///////////////////////////////////////////////////////////////////////////////
 	// Button logic event handlers
-	document.getElementById("showLines").onclick = function() {
+	document.getElementById("showLots").onclick = function() {
 		drawPaystations();
 	};
 	var timestamp;
@@ -31,22 +31,30 @@ $(function() {
 		var timestamp = $('input[id="timestamp"]').val();
 		thisDate = $('input[id="date"]').val();
 		thisTime = $('input[id="time"]').val();
+    console.log(thisTime);
+    if (thisTime === '') {
+      thisTime = "12:00"; // Default time
+    }
 		dateParts = thisDate.split('-');
+
+    // Hack to fake future data
+    if (dateParts[0] >= 2016) {
+      dateParts[0] = 2015;
+    }
 		timeParts = thisTime.split(':');
 		date = new Date(dateParts[0], parseInt(dateParts[1], 10) - 1, dateParts[2], timeParts[0], timeParts[1]);
 		timestamp = date.getTime() / 1000; // unix time from date /time entry
 
-		if (!timestamp) {
-			timestamp = 1455290482; //Date.now() / 1000 | 0; // current unix time
-		} // showDensities(1451649600); 1455290482
+		// if (!timestamp) {
+		// 	timestamp = 1455290482; //Date.now() / 1000 | 0; // current unix time
+		// } // showDensities(1451649600); 1455290482
 		console.log(timestamp);
-		document.getElementById("timestamp").value = timestamp;
+		// document.getElementById("timestamp").value = timestamp;
 		console.log('Selected : ' + thisTime + ' ' + thisDate + ' or ' + timestamp);
-
 
 		showDensities(timestamp);
 	};
-	document.getElementById("refresh").onclick = function() {
+	document.getElementById("clear").onclick = function() {
 		clearMap();
 	};
 
@@ -73,7 +81,7 @@ $(function() {
 			strokeWeight: size
 		});
 		// var infowindow = null
-		// // doesnt wooooooooooooooooooooooork value doesnt update on click
+		// // doesnt work value doesnt update on click
 		// google.maps.event.addListener(mapLine, 'click', function(event) {
 		// var infowindow = new google.maps.InfoWindow({content: value});
 		// 	console.log(value);
@@ -100,7 +108,7 @@ $(function() {
 					// Calculate size and color of line
 					var size = data[6] / 2;
 					var hue = 2 * (50 - data[6]); // big = red small = light_green
-					var color = 'hsl(' + hue + ', 100%, 75%)';
+					var color = 'hsl(' + hue + ', 100%, 50%)';
 					drawLine(coords, color, size); // Set color based off capacity
 				}
 			});
@@ -226,11 +234,11 @@ $(function() {
             autoSrcLocation = place['formatted_address'];
         }
     });
-    
+
     $("#searchRadius").change( function(){
-        searchRadius = parseInt($(this).val()); 
+        searchRadius = parseInt($(this).val());
         $("#curRadius").html(searchRadius);
-        console.log("search radius =" + searchRadius);
+        console.log("search radius = " + searchRadius);
     });
 
     //Grab location from Destination Auto Search when changed
@@ -266,17 +274,17 @@ $(function() {
                             originlng = data.coords.longitude;
                             originSpot = new google.maps.LatLng(originlat,originlng);
                      //     directions(directionsService,directionsDisplay,originSpot,destinationSpot,google.maps.TravelMode.DRIVING);
- 
+
                           directionsExp(directionsService,directionsDisplay,originSpot,destinationSpot,google.maps.TravelMode.DRIVING);
-                    })
+                    });
                     } else {
                         alert("Geolocation is not supported by this browser.");
                     }
            }else if($('input[name=src]:checked').val()=='searchSrc'){
-                 originSpot = autoSrcLocation;  
+                 originSpot = autoSrcLocation;
                   directionsExp(directionsService,directionsDisplay,originSpot,destinationSpot,google.maps.TravelMode.DRIVING);
-             
-            //  directions(directionsService,directionsDisplay,originSpot,destinationSpot,google.maps.TravelMode.DRIVING); 
+
+            //  directions(directionsService,directionsDisplay,originSpot,destinationSpot,google.maps.TravelMode.DRIVING);
         }
         });
 
@@ -286,37 +294,37 @@ $(function() {
          strokeColor: '#FF0000',
          strokeOpacity: 1.0,
          strokeWeight: 2
-       });      
+       });
           function directionsExp(directionsService,directionsDisplayer,originSpot,destSpot,mode){
           directionsService.route({
                 origin: originSpot,
                 destination: destSpot,
                 travelMode: mode,
                 provideRouteAlternatives:true
-            },  
+            },
             function (response,status){
                 if (status == google.maps.DirectionsStatus.OK) {
-                    console.log(response)
+                    console.log(response);
                     var bounds = new google.maps.LatLngBounds();
                     var summaryList = [];
                     var detailsList = [];
                     var startLocation = new Object();
                     var endLocation = new Object();
                     var routeList = [];
-                    clearDirectionsPanel();   
+                    clearDirectionsPanel();
                     //do route logic here and loop over the route array
                     $.each(response.routes, function(index, routeOption){
-                        routeList.push(routeOption); 
+                        routeList.push(routeOption);
                     });
-                     console.log(routeList); 
-                    
+                     console.log(routeList);
+
                     $.each(routeList, function(index,route){
-                        console.log(route);
+                        // console.log(route);
                         //Route Summary at the top of the page
                         var $div = $("<div>",{id :"foo", class : "directionsBox"});
                         $div.data("directions",index);
-                        
-                        //show route information associated when div clicked on 
+
+                        //show route information associated when div clicked on
                         $div.click(function(){
                             clearPolyLines();
                             directionsNumber = jQuery(this).data('directions');
@@ -330,7 +338,7 @@ $(function() {
                             $div.append(  routeSegment.distance.text + "<br /><br />");
                        });
                        //storing the divs inside an array to mess with later
-                    summaryList[index] = $div
+                    summaryList[index] = $div;
                     summaryPanel.append($div);
 
 
@@ -343,8 +351,15 @@ $(function() {
                         //hide the other content
                         //s
                         });
+                        var polyline = new google.maps.Polyline({
+                             path: [],
+                             geodesic: true,
+                             strokeColor: '#FF0000',
+                             strokeOpacity: 1.0,
+                             strokeWeight: 2
+                           });
                         for (i=0;i<legs.length;i++) {
-                            if (i == 0) { 
+                            if (i === 0) {
                                 startLocation.latlng = legs[i].start_location;
                                 startLocation.address = legs[i].start_address;
                                 startLocation.marker = createMarker(legs[i].start_location,"start",legs[i].start_address,"green");
@@ -352,20 +367,14 @@ $(function() {
                              endLocation.latlng = legs[i].end_location;
                              endLocation.address = legs[i].end_address;
                              var steps = legs[i].steps;
-                            var polyline = new google.maps.Polyline({
-                                 path: [],
-                                 geodesic: true,
-                                 strokeColor: '#FF0000',
-                                 strokeOpacity: 1.0,
-                                 strokeWeight: 2
-                               }); 
+
                              for (j=0;j<steps.length;j++) {
                                  var nextSegment = steps[j].path;
                                  $directions.append( "<li>"+steps[j].instructions);
                                  var dist_dur = "";
                                  if (steps[j].distance && steps[j].distance.text) dist_dur += "&nbsp;"+steps[j].distance.text;
                                  if (steps[j].duration && steps[j].duration.text) dist_dur += "&nbsp;"+steps[j].duration.text;
-                                 if (dist_dur != "") {
+                                 if (dist_dur !== "") {
                                      $directions.append( "("+dist_dur+")<br /></li>");
                                  } else {
                                      $directions.append( "</li>");
@@ -379,14 +388,14 @@ $(function() {
                         }
                         //polyline.setMap(map);
                         $directions.append("</ul>");
-                        detailsList[index] = $directions;  
-                        polylineList[index] = polyline; 
+                        detailsList[index] = $directions;
+                        polylineList[index] = polyline;
                         map.fitBounds(bounds);
                         endLocation.marker = createMarker(endLocation.latlng,"end",endLocation.address,"red");
-        
-                    })   
+
+                    });
                 }else alert(status);
-            })
+            });
    }
 
 
@@ -396,10 +405,10 @@ $(function() {
         position: placement,
         map: map,
         icon:'http://maps.google.com/mapfiles/ms/icons/'+color+'-dot.png'  ,
-        title:title 
+        title:title
       });
       markersList.push(marker);
-  
+
   }
 
    function directions(directionsService,directionsDisplayer,originSpot,destSpot,mode){
@@ -436,6 +445,7 @@ $(function() {
         markAndCircle(latLng, searchRadius, map);
         //Loop over each datapoint(payStation)
         nearestPayStation = null;
+        var nFound = 0;
         $.each(data, function(index) {
           payStationItem = data[index];
           // console.log(payStationItem);
@@ -448,7 +458,7 @@ $(function() {
             nearestPayStation = payStationItem;
             nearestPayStationID = idNumber;
           } else if (nearestPayStation[7] > distance) {
-            console.log(distance);
+            // console.log(distance);
             nearestPayStation = payStationItem;
             nearestPayStationID = idNumber;
           }
@@ -460,7 +470,7 @@ $(function() {
               //have different colored parking .png files for busy/notbusy/somewhat busy
           });
           //TODO: Make a better looking Info window
-          infoWindowContent = '<p>parkingMeter {} has a max capacity {} and is {} km away from destination </p>'.format(idNumber, meterMaxOcc, distance);
+          infoWindowContent = '<p>Paystation {} has a max capacity {} and is {} m away from destination </p>'.format(idNumber, meterMaxOcc, Math.round(distance*1000));
           var infoWindow = new google.maps.InfoWindow({
             content: infoWindowContent
           });
@@ -472,42 +482,13 @@ $(function() {
           });
           markersList.push(marker);
           infoWindowList.push(infoWindow);
-
+          nFound++;
         });
         //console.log(nearestPayStation[4]);
+        console.log("Found " + nFound + " paystations within range");
+
       });
       return false;
-    }
-	// Clears the map of markers
-	function clearMap() {
-        clearLines();	
-	    clearMarkers();
-	    clearPolyLines();
-        polylineList = [];
-        infoWindowList = [];
-	}
-    // Make directions empty again 
-      function clearDirectionsPanel(){
-            summaryPanel.html('') ;
-            detailsPanel.html('');
-      }
-    function clearMarkers(){
-        for (var i = 0; i < markersList.length; i++) {
-                markersList[i].setMap(null);
-            }
-		markersList = [];
-    }
-
-    function clearLines(){
-        for (var j = 0; j < lineList.length; j++) {
-            lineList[j].setMap(null);
-        }
-		lineList = [];
-    }
-    function clearPolyLines(){
-        for (var j = 0; j < polylineList.length; j++) {
-                polylineList[j].setMap(null);
-            }
     }
 
     //takes a latLong object , radius , and map
@@ -534,5 +515,36 @@ $(function() {
       markersList.push(cityCircle);
     }
   };
+  // Clears the map of markers
+  // Jake - moved so it has full scope
+	function clearMap() {
+      clearLines();
+	    clearMarkers();
+	    clearPolyLines();
+        polylineList = [];
+        infoWindowList = [];
+	}
+    // Make directions empty again
+      function clearDirectionsPanel(){
+            summaryPanel.html('') ;
+            detailsPanel.html('');
+      }
+    function clearMarkers(){
+        for (var i = 0; i < markersList.length; i++) {
+                markersList[i].setMap(null);
+            }
+		markersList = [];
+    }
 
+    function clearLines(){
+        for (var j = 0; j < lineList.length; j++) {
+            lineList[j].setMap(null);
+        }
+		lineList = [];
+    }
+    function clearPolyLines(){
+        for (var j = 0; j < polylineList.length; j++) {
+                polylineList[j].setMap(null);
+            }
+    }
 });
