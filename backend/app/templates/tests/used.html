@@ -1,0 +1,48 @@
+<html>
+<head>
+<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+<title>Google Maps - pygmaps </title>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?libraries=visualization&sensor=true_or_false"></script>
+<script type="text/javascript">
+	function initialize() {
+		var centerlatlng = new google.maps.LatLng(47.609700, -122.333100);
+		var myOptions = {
+			zoom: 13,
+			center: centerlatlng,
+			mapTypeId: google.maps.MapTypeId.ROADMAP
+		};
+		var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
+		url = '/Users/jake/Dropbox/projects/parking-project/backend/app/static/streets.json'
+		$.getJSON(url, function(data) {
+
+			//  Parse the Linestring field into an array of LatLngs
+			$.each(data.data, function(index, record) {
+				var mypath = new Array();
+				line = JSON.parse(record.Linestring);
+				console.out(line)
+				//  Parse the array of LatLngs into Gmap points
+				for (var i = 0; i < line.length; i++) {
+					//Tokenise the coordinates
+					var coords = (new String(line[i])).split(",");
+					mypath.push(new google.maps.LatLng(coords[1], coords[0]));
+				}
+				var polyline = new google.maps.Polyline({
+					path: mypath,
+					strokeColor: '#ff0000',
+					strokeOpacity: 1.0,
+					strokeWeight: 3
+				});
+				polyline.setMap(map);
+			});
+
+		});
+
+	}
+</script>
+</head>
+<body style="margin:0px; padding:0px;" onload="initialize()">
+	<div id="map_canvas" style="width: 100%; height: 100%;"></div>
+</body>
+</html>
