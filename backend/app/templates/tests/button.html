@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+<script>
+$(document).ready(function(){
+    $("button").click(function(){
+        $.getJSON("http://127.0.0.1:5000/paystations", function(result){
+            $.each(result, function(i, field){
+              console.log(field);
+            });
+        });
+    });
+});
+
+var map;
+function initMap() {
+  map = new google.maps.Map(document.getElementById('map'), {
+    center: {lat: -34.397, lng: 150.644},
+    zoom: 8
+  });
+  $(document).ready(function(){
+      $("button").click(function(){
+          $.getJSON("http://127.0.0.1:5000/paystations", function(result){
+              $.each(result, function(i, field){
+                console.log(field);
+              });
+          });
+      });
+  });
+}
+</script>
+</head>
+<body>
+
+<button>Load Lines</button>
+
+<div></div>
+
+</body>
+</html>
